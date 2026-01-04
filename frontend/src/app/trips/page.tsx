@@ -1,34 +1,12 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import type { Trip } from "@/src/types/trip";
+import { getTrips } from "@/src/lib/api/trips";
 
 interface TripsPageProps {
   searchParams: Promise<{ page?: string; limit?: string }>;
 }
 
-async function getTrips(page: number = 1, limit: number = 20): Promise<Trip[]> {
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
-  const offset = (page - 1) * limit;
-
-  const url = new URL(`${apiBaseUrl}/api/v1/trips`);
-  url.searchParams.set("limit", limit.toString());
-  url.searchParams.set("offset", offset.toString());
-
-  try {
-    const response = await fetch(url.toString(), {
-      next: { revalidate: 60 }, // Revalidate every 60 seconds
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch trips: ${response.statusText}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("Error fetching trips:", error);
-    return [];
-  }
-}
 
 function TripCard({ trip }: { trip: Trip }) {
   const date = new Date(trip.start_date);
@@ -110,14 +88,14 @@ function PaginationControls({
 }
 
 async function TripsList({ page, limit }: { page: number; limit: number }) {
-  const trips = await getTrips(page, limit);
+  const trips = await getTrips({ page, limit });
   const hasMore = trips.length === limit; // Simple check: if we got full limit, there might be more
 
   return (
     <>
       {trips.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-gray-500 text-lg">No trips found.</p>
+          <p className="text-gray-500 text-lg">No trips available yet</p>
         </div>
       ) : (
         <>
