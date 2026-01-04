@@ -3,6 +3,7 @@ interface TripDetailHeroProps {
   location: string;
   dateRange: string;
   seatsAvailable: number;
+  tags?: string[] | null;
 }
 
 export function TripDetailHero({
@@ -10,6 +11,7 @@ export function TripDetailHero({
   location,
   dateRange,
   seatsAvailable,
+  tags,
 }: TripDetailHeroProps) {
   return (
     <div className="relative h-[500px] md:h-[600px] w-full">
@@ -35,6 +37,20 @@ export function TripDetailHero({
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 leading-tight">
               {title}
             </h1>
+
+            {/* Tags */}
+            {tags && tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium text-white"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
 
             {/* Location and Date */}
             <div className="flex flex-wrap items-center gap-6 text-white">

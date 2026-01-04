@@ -22,6 +22,7 @@ from app.db.base import Base
 from app.models.trip import Trip
 from app.models.organizer import Organizer
 from app.models.booking import Booking
+from app.models.user import User
 
 target_metadata = Base.metadata
 

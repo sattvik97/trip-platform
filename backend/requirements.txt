@@ -1,9 +1,16 @@
 fastapi
 uvicorn[standard]
 pydantic
+pydantic-settings
 python-dotenv
 sqlalchemy
 psycopg2-binary
 alembic
 loguru
 email-validator
+pyjwt
+python-multipart
+
+# Password hashing (PINNED to avoid bcrypt runtime crash)
+passlib==1.7.4
+bcrypt==4.0.1

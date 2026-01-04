@@ -45,10 +45,10 @@ export default async function TripDetailPage({
   const duration = calculateDuration(trip.start_date, trip.end_date);
   const groupSize = `Max ${trip.total_seats} people`;
 
-  // For now, we don't have highlights or itinerary from backend
-  // These would come from backend in future iterations
+  // For now, we don't have highlights from backend
   const highlights: string[] = [];
-  const itinerary: Array<{ day: number; title: string; description: string }> = [];
+  const itinerary: Array<{ day: number; title: string; description: string }> =
+    trip.itinerary || [];
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -60,6 +60,7 @@ export default async function TripDetailPage({
           location={trip.destination}
           dateRange={dateRange}
           seatsAvailable={trip.available_seats}
+          tags={trip.tags}
         />
 
         {/* Main Content */}
@@ -117,7 +118,10 @@ export default async function TripDetailPage({
                     Itinerary
                   </h2>
                   <div className="space-y-8">
-                    {itinerary.map((item) => (
+                    {itinerary
+                      .slice()
+                      .sort((a, b) => a.day - b.day)
+                      .map((item) => (
                       <div key={item.day} className="border-l-4 border-blue-600 pl-6">
                         <div className="flex items-baseline gap-3 mb-2">
                           <span className="text-blue-600 font-bold text-lg">

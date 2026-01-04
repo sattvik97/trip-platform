@@ -83,4 +83,8 @@ def map_trip_response(db: Session, trip):
         "end_date": trip.end_date,
         "total_seats": trip.total_seats,
         "available_seats": get_available_seats(db, trip.id),
+        "tags": trip.tags,
+        "cover_image_url": trip.cover_image_url,
+        "gallery_images": trip.gallery_images,
+        "itinerary": trip.itinerary,
     }

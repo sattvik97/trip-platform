@@ -9,10 +9,13 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     UniqueConstraint,
+    Enum as SQLEnum,
 )
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.db.base import Base
+from app.models.trip_tag import TripTag
 
 class Trip(Base):
     __tablename__ = "trips"
@@ -31,6 +34,11 @@ class Trip(Base):
     end_date = Column(Date, nullable=False)
 
     total_seats = Column(Integer, nullable=False)  # ✅ REQUIRED
+
+    tags = Column(ARRAY(String), nullable=True)
+    cover_image_url = Column(String, nullable=True)
+    gallery_images = Column(ARRAY(String), nullable=True)
+    itinerary = Column(JSONB, nullable=True)
 
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
