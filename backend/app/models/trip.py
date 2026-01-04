@@ -1,8 +1,17 @@
-import uuid
+﻿import uuid
 from sqlalchemy import (
-    Column, String, Integer, Date, Text,
-    Boolean, DateTime, ForeignKey, UniqueConstraint, func
+    Column,
+    String,
+    Integer,
+    Date,
+    Text,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    UniqueConstraint,
 )
+from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from app.db.base import Base
 
 class Trip(Base):
@@ -17,14 +26,25 @@ class Trip(Base):
     description = Column(Text)
     destination = Column(String, nullable=False)
     price = Column(Integer, nullable=False)
+
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=False)
+
+    total_seats = Column(Integer, nullable=False)  # ✅ REQUIRED
 
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     deleted_at = Column(DateTime(timezone=True), nullable=True)
 
+    # Relationships
+    bookings = relationship(
+        "Booking",
+        backref="trip",
+        lazy="select",
+        cascade="all, delete-orphan",
+    )
+
     __table_args__ = (
-        UniqueConstraint("organizer_id", "title", "start_date", name="uq_trip_no_duplicates"),
         UniqueConstraint("organizer_id", "slug", name="uq_trip_slug"),
+        UniqueConstraint("organizer_id", "title", "start_date", name="uq_trip_no_duplicates"),
     )

@@ -11,10 +11,14 @@ class TripBase(BaseModel):
     end_date: date
 
 class TripCreate(TripBase):
-    pass
+    organizer_id: str
 
 class TripResponse(TripBase):
     id: str
+    slug: str
+    organizer_id: str
+    total_seats: int
+    available_seats: int
 
     class Config:
         from_attributes = True

@@ -21,6 +21,7 @@ if config.config_file_name is not None:
 from app.db.base import Base
 from app.models.trip import Trip
 from app.models.organizer import Organizer
+from app.models.booking import Booking
 
 target_metadata = Base.metadata
 
