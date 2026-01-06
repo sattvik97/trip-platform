@@ -1,4 +1,14 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { isUserAuthenticated } from "@/src/lib/userAuth";
+import { getUserBookingForTrip, UserBooking } from "@/src/lib/api/user";
+import { useAuth } from "@/src/contexts/AuthContext";
+
 interface BookingCardProps {
+  tripId: string;
+  tripSlug: string;
   price: number;
   dateRange: string;
   duration: string;
@@ -7,12 +17,81 @@ interface BookingCardProps {
 }
 
 export function BookingCard({
+  tripId,
+  tripSlug,
   price,
   dateRange,
   duration,
   groupSize,
   seatsAvailable,
 }: BookingCardProps) {
+  const router = useRouter();
+  const { isAuthenticated, role } = useAuth();
+  const userLoggedIn = isAuthenticated && role === "user";
+  const [booking, setBooking] = useState<UserBooking | null>(null);
+  const [isLoadingBooking, setIsLoadingBooking] = useState(true);
+
+  useEffect(() => {
+    if (!userLoggedIn) {
+      setIsLoadingBooking(false);
+      return;
+    }
+
+    const fetchBooking = async () => {
+      try {
+        const bookingData = await getUserBookingForTrip(tripId);
+        setBooking(bookingData);
+      } catch (error) {
+        console.error("Failed to fetch booking:", error);
+        setBooking(null);
+      } finally {
+        setIsLoadingBooking(false);
+      }
+    };
+
+    fetchBooking();
+  }, [tripId, userLoggedIn]);
+
+  const handleBookingRequest = () => {
+    if (!userLoggedIn) {
+      router.push("/login");
+      return;
+    }
+
+    // If user already has a booking, navigate to confirmation page
+    if (booking) {
+      router.push(`/bookings/${booking.id}/confirmation`);
+      return;
+    }
+
+    // Navigate to booking details page
+    router.push(`/trip/${tripSlug}/book`);
+  };
+
+  // Determine button text and disabled state
+  const getButtonState = () => {
+    if (seatsAvailable === 0) {
+      return { text: "No Seats Available", disabled: true };
+    }
+    if (booking) {
+      if (booking.status === "PENDING") {
+        return { text: "View Booking Request", disabled: false };
+      }
+      if (booking.status === "APPROVED") {
+        return { text: "View Confirmed Booking", disabled: false };
+      }
+      if (booking.status === "REJECTED") {
+        return { text: "View Booking Details", disabled: false };
+      }
+    }
+    if (!userLoggedIn) {
+      return { text: "Login to Book", disabled: false };
+    }
+    return { text: "Book Now", disabled: false };
+  };
+
+  const buttonState = getButtonState();
+
   return (
     <div className="bg-white border border-gray-200 rounded-xl shadow-lg p-6 sticky top-24">
       {/* Price */}
@@ -110,18 +189,29 @@ export function BookingCard({
         </div>
       </div>
 
-      {/* Booking CTA - Disabled */}
-      <button
-        type="button"
-        disabled
-        className="w-full py-4 px-6 rounded-lg font-semibold text-lg bg-gray-100 text-gray-600 cursor-not-allowed border border-gray-200"
-      >
-        Bookings opening soon
-      </button>
-
-      <p className="text-center text-sm text-gray-500 mt-3">
-        Contact organizer to reserve a seat
-      </p>
+      {/* Booking CTA */}
+      {!isLoadingBooking && (
+        <>
+          <button
+            type="button"
+            onClick={handleBookingRequest}
+            disabled={buttonState.disabled}
+            className="w-full py-4 px-6 rounded-lg font-semibold text-lg bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-100 disabled:text-gray-600 disabled:cursor-not-allowed transition-colors border border-transparent disabled:border-gray-200"
+          >
+            {buttonState.text}
+          </button>
+          {!userLoggedIn && (
+            <p className="text-center text-sm text-gray-500 mt-3">
+              Sign in to book this trip
+            </p>
+          )}
+        </>
+      )}
+      {isLoadingBooking && (
+        <div className="w-full py-4 px-6 rounded-lg font-semibold text-lg bg-gray-100 text-gray-600 text-center">
+          Loading...
+        </div>
+      )}
     </div>
   );
 }

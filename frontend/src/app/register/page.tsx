@@ -1,42 +1,44 @@
 "use client";
 
-import { useState, FormEvent, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { loginOrganizer } from "@/src/lib/api/organizer";
-import { login } from "@/src/lib/auth";
-import { useAuth } from "@/src/contexts/AuthContext";
+import { registerUser } from "@/src/lib/api/user";
 import { AuthHeader } from "@/src/components/auth/AuthHeader";
 import { AuthBanner } from "@/src/components/auth/AuthBanner";
 
-export default function OrganizerLoginPage() {
+export default function RegisterPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const { login: authLogin } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    if (searchParams.get("registered") === "true") {
-      setSuccess("Registration successful! Please log in.");
-    }
-  }, [searchParams]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const response = await loginOrganizer({ email, password });
-      login(response.access_token);
-      authLogin(response.access_token, email, "organizer");
-      router.push("/organizer/dashboard");
+      await registerUser({
+        email,
+        password,
+      });
+      router.push("/login?registered=true");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      setError(err instanceof Error ? err.message : "Registration failed");
     } finally {
       setIsLoading(false);
     }
@@ -46,29 +48,23 @@ export default function OrganizerLoginPage() {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <AuthHeader />
       <div className="flex-grow flex">
-        <AuthBanner role="organizer" mode="login" />
+        <AuthBanner role="user" mode="register" />
         <div className="flex-1 flex items-center justify-center px-4 py-12">
           <div className="w-full max-w-md">
             <div className="mb-8">
               <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                Sign in to your organizer account
+                Create your account
               </h2>
               <p className="text-gray-600">
-                Don't have an account?{" "}
+                Already have an account?{" "}
                 <Link
-                  href="/organizer/register"
+                  href="/login"
                   className="font-medium text-indigo-600 hover:text-indigo-500"
                 >
-                  Create one here
+                  Sign in here
                 </Link>
               </p>
             </div>
-
-            {success && (
-              <div className="mb-4 rounded-md bg-green-50 p-4">
-                <div className="text-sm text-green-800">{success}</div>
-              </div>
-            )}
 
             {error && (
               <div className="mb-4 rounded-md bg-red-50 p-4">
@@ -108,12 +104,32 @@ export default function OrganizerLoginPage() {
                   id="password"
                   name="password"
                   type="password"
-                  autoComplete="current-password"
+                  autoComplete="new-password"
                   required
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  placeholder="Enter your password"
+                  placeholder="At least 6 characters"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="confirmPassword"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Confirm Password
+                </label>
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  placeholder="Confirm your password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                 />
               </div>
 
@@ -123,7 +139,7 @@ export default function OrganizerLoginPage() {
                   disabled={isLoading}
                   className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  {isLoading ? "Signing in..." : "Sign in"}
+                  {isLoading ? "Creating account..." : "Create account"}
                 </button>
               </div>
             </form>
@@ -133,3 +149,4 @@ export default function OrganizerLoginPage() {
     </div>
   );
 }
+

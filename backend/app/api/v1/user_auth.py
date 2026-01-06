@@ -5,18 +5,18 @@ import jwt
 
 from app.db.deps import get_db
 from app.core.config import settings
-from app.schemas.auth import UserRegister, UserLogin, Token, UserResponse
-from app.crud.auth import (
-    create_user,
-    get_user_by_email,
+from app.schemas.user_auth import UserRegister, UserLogin, Token, UserResponse
+from app.crud.end_user import (
+    create_end_user,
+    get_end_user_by_email,
     verify_password,
 )
 
 router = APIRouter()
 
 
-def create_access_token(data: dict, expires_delta: timedelta = None) -> str:
-    """Create a JWT access token."""
+def create_user_access_token(data: dict, expires_delta: timedelta = None) -> str:
+    """Create a JWT access token for end users."""
     to_encode = data.copy()
     
     if expires_delta:
@@ -25,6 +25,8 @@ def create_access_token(data: dict, expires_delta: timedelta = None) -> str:
         expire = datetime.utcnow() + settings.access_token_expire
     
     to_encode.update({"exp": expire})
+    # Add token_type to distinguish from organizer tokens
+    to_encode["token_type"] = "user"
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
@@ -38,10 +40,10 @@ def register(
     user_data: UserRegister,
     db: Session = Depends(get_db),
 ):
-    """Register a new user or organizer."""
+    """Register a new end user."""
     try:
-        user = create_user(db, user_data)
-        return user
+        user = create_end_user(db, user_data)
+        return UserResponse(id=user.id, email=user.email)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -57,8 +59,8 @@ def login(
     credentials: UserLogin,
     db: Session = Depends(get_db),
 ):
-    """Login and receive JWT token."""
-    user = get_user_by_email(db, credentials.email)
+    """Login and receive JWT token for end users."""
+    user = get_end_user_by_email(db, credentials.email)
     
     if not user:
         raise HTTPException(
@@ -72,15 +74,13 @@ def login(
             detail="Incorrect email or password",
         )
     
-    # Create JWT payload with token_type to distinguish from user tokens
+    # Create JWT payload with token_type to distinguish from organizer tokens
     jwt_payload = {
         "sub": user.id,
-        "role": user.role.value,
-        "organizer_id": user.organizer_id,
-        "token_type": "organizer",  # Explicit token type for organizer
+        "token_type": "user",  # Explicit token type for user
     }
     
-    access_token = create_access_token(data=jwt_payload)
+    access_token = create_user_access_token(data=jwt_payload)
     
     return Token(access_token=access_token)
 

@@ -177,12 +177,16 @@ def list_organizer_trips(
 
 
 def get_booked_seats_count(db: Session, trip_id: str) -> int:
-    """Get count of confirmed booked seats for a trip."""
+    """Get count of approved/confirmed booked seats for a trip."""
+    from sqlalchemy import or_
     booked = (
         db.query(func.coalesce(func.sum(Booking.seats_booked), 0))
         .filter(
             Booking.trip_id == trip_id,
-            Booking.status == "confirmed",
+            or_(
+                Booking.status == "APPROVED",
+                Booking.status == "confirmed",  # Legacy support
+            ),
         )
         .scalar()
     )

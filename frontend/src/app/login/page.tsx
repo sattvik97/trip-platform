@@ -3,13 +3,13 @@
 import { useState, FormEvent, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { loginOrganizer } from "@/src/lib/api/organizer";
-import { login } from "@/src/lib/auth";
+import { loginUser as loginUserAPI } from "@/src/lib/api/user";
+import { loginUser } from "@/src/lib/userAuth";
 import { useAuth } from "@/src/contexts/AuthContext";
 import { AuthHeader } from "@/src/components/auth/AuthHeader";
 import { AuthBanner } from "@/src/components/auth/AuthBanner";
 
-export default function OrganizerLoginPage() {
+export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login: authLogin } = useAuth();
@@ -31,10 +31,10 @@ export default function OrganizerLoginPage() {
     setIsLoading(true);
 
     try {
-      const response = await loginOrganizer({ email, password });
-      login(response.access_token);
-      authLogin(response.access_token, email, "organizer");
-      router.push("/organizer/dashboard");
+      const response = await loginUserAPI({ email, password });
+      loginUser(response.access_token);
+      authLogin(response.access_token, email, "user");
+      router.push("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
@@ -46,17 +46,17 @@ export default function OrganizerLoginPage() {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <AuthHeader />
       <div className="flex-grow flex">
-        <AuthBanner role="organizer" mode="login" />
+        <AuthBanner role="user" mode="login" />
         <div className="flex-1 flex items-center justify-center px-4 py-12">
           <div className="w-full max-w-md">
             <div className="mb-8">
               <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                Sign in to your organizer account
+                Sign in to your account
               </h2>
               <p className="text-gray-600">
                 Don't have an account?{" "}
                 <Link
-                  href="/organizer/register"
+                  href="/register"
                   className="font-medium text-indigo-600 hover:text-indigo-500"
                 >
                   Create one here
@@ -133,3 +133,4 @@ export default function OrganizerLoginPage() {
     </div>
   );
 }
+

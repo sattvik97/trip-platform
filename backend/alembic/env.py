@@ -23,6 +23,7 @@ from app.models.trip import Trip
 from app.models.organizer import Organizer
 from app.models.booking import Booking
 from app.models.user import User
+from app.models.end_user import EndUser
 
 target_metadata = Base.metadata
 

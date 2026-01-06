@@ -89,3 +89,60 @@ export async function getTripBySlug(
     return null;
   }
 }
+
+export interface TravelerDetail {
+  name: string;
+  age: number;
+  gender: string;
+  profession?: string;
+}
+
+export interface BookingRequest {
+  num_travelers: number;
+  travelers: TravelerDetail[];
+  contact_name: string;
+  contact_phone: string;
+  contact_email: string;
+  price_per_person: number;
+  total_price: number;
+  currency: string;
+}
+
+export interface BookingResponse {
+  message: string;
+  booking_id: string;
+  status: string;
+}
+
+export async function createBookingRequest(
+  tripId: string,
+  request: BookingRequest
+): Promise<BookingResponse> {
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+  const token = typeof window !== "undefined" ? localStorage.getItem("user_token") : null;
+
+  if (!token) {
+    throw new Error("User authentication required");
+  }
+
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/v1/trips/${tripId}/bookings`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ detail: response.statusText }));
+      throw new Error(errorData.detail || `Failed to create booking: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error creating booking request:", error);
+    throw error;
+  }
+}

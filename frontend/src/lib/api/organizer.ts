@@ -190,3 +190,140 @@ export async function getOrganizerTrips(): Promise<OrganizerTrip[]> {
   return await response.json();
 }
 
+export interface TravelerDetail {
+  name: string;
+  age: number;
+  gender: string;
+  profession?: string;
+}
+
+export interface OrganizerBooking {
+  id: string;
+  trip_id: string;
+  user_id: string | null;
+  seats_booked: number;
+  source: string;
+  status: string;
+  created_at: string;
+  trip_title: string | null;
+  trip_destination: string | null;
+  user_email: string | null;
+  num_travelers: number | null;
+  traveler_details: TravelerDetail[] | null;
+  contact_name: string | null;
+  contact_phone: string | null;
+  contact_email: string | null;
+  price_per_person: number | null;
+  total_price: number | null;
+  currency: string | null;
+}
+
+export async function getOrganizerBookings(
+  status?: string
+): Promise<OrganizerBooking[]> {
+  const apiBaseUrl =
+    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+  const token = getToken();
+
+  if (!token) {
+    throw new Error("Not authenticated");
+  }
+
+  const url = new URL(`${apiBaseUrl}/api/v1/organizer/bookings`);
+  // Only send status param if it's provided and not empty (not "All")
+  if (status && status.trim() !== "") {
+    url.searchParams.append("status", status);
+  }
+
+  const response = await fetch(url.toString(), {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error("Authentication failed");
+    }
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.detail || `Failed to fetch bookings: ${response.statusText}`
+    );
+  }
+
+  return await response.json();
+}
+
+export async function approveBooking(
+  bookingId: string
+): Promise<OrganizerBooking> {
+  const apiBaseUrl =
+    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+  const token = getToken();
+
+  if (!token) {
+    throw new Error("Not authenticated");
+  }
+
+  const response = await fetch(
+    `${apiBaseUrl}/api/v1/organizer/bookings/${bookingId}/approve`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error("Authentication failed");
+    }
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.detail || `Failed to approve booking: ${response.statusText}`
+    );
+  }
+
+  return await response.json();
+}
+
+export async function rejectBooking(
+  bookingId: string
+): Promise<OrganizerBooking> {
+  const apiBaseUrl =
+    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+  const token = getToken();
+
+  if (!token) {
+    throw new Error("Not authenticated");
+  }
+
+  const response = await fetch(
+    `${apiBaseUrl}/api/v1/organizer/bookings/${bookingId}/reject`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error("Authentication failed");
+    }
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.detail || `Failed to reject booking: ${response.statusText}`
+    );
+  }
+
+  return await response.json();
+}
+

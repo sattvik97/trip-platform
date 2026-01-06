@@ -3,6 +3,7 @@ import { Header } from "@/src/components/layout/Header";
 import { Footer } from "@/src/components/layout/Footer";
 import { TripDetailHero } from "@/src/components/trips/TripDetailHero";
 import { BookingCard } from "@/src/components/trips/BookingCard";
+import { TripBookingStatus } from "@/src/components/trips/TripBookingStatus";
 import { getTripBySlug } from "@/src/lib/api/trips";
 
 function calculateDuration(startDate: string, endDate: string): string {
@@ -65,6 +66,9 @@ export default async function TripDetailPage({
 
         {/* Main Content */}
         <div className="container mx-auto px-4 py-8 md:py-12 max-w-7xl">
+          {/* Booking Status Banner */}
+          <TripBookingStatus tripId={trip.id} />
+          
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
             {/* Left Column - Main Content */}
             <div className="lg:col-span-2 space-y-10">
@@ -151,6 +155,8 @@ export default async function TripDetailPage({
             <div className="lg:col-span-1">
               <div className="lg:sticky lg:top-24">
                 <BookingCard
+                  tripId={trip.id}
+                  tripSlug={trip.slug}
                   price={trip.price}
                   dateRange={dateRange}
                   duration={duration}
