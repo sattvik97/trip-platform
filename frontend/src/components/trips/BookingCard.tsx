@@ -13,8 +13,6 @@ export function BookingCard({
   groupSize,
   seatsAvailable,
 }: BookingCardProps) {
-  const isAvailable = seatsAvailable > 0;
-
   return (
     <div className="bg-white border border-gray-200 rounded-xl shadow-lg p-6 sticky top-24">
       {/* Price */}
@@ -104,7 +102,7 @@ export function BookingCard({
             />
           </svg>
           <div>
-            <p className="text-sm font-medium text-gray-900">Seats Available</p>
+            <p className="text-sm font-medium text-gray-900">Seats left</p>
             <p className="text-sm text-gray-600">
               {seatsAvailable} {seatsAvailable === 1 ? "seat" : "seats"} left
             </p>
@@ -112,24 +110,18 @@ export function BookingCard({
         </div>
       </div>
 
-      {/* Book Now Button */}
+      {/* Booking CTA - Disabled */}
       <button
         type="button"
-        disabled={!isAvailable}
-        className={`w-full py-4 px-6 rounded-lg font-semibold text-lg transition-colors ${
-          isAvailable
-            ? "bg-blue-600 text-white hover:bg-blue-700"
-            : "bg-gray-300 text-gray-500 cursor-not-allowed"
-        }`}
+        disabled
+        className="w-full py-4 px-6 rounded-lg font-semibold text-lg bg-gray-100 text-gray-600 cursor-not-allowed border border-gray-200"
       >
-        {isAvailable ? "Book Now" : "Fully Booked"}
+        Bookings opening soon
       </button>
 
-      {isAvailable && (
-        <p className="text-center text-sm text-gray-500 mt-4">
-          You won't be charged yet
-        </p>
-      )}
+      <p className="text-center text-sm text-gray-500 mt-3">
+        Contact organizer to reserve a seat
+      </p>
     </div>
   );
 }

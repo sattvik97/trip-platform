@@ -22,11 +22,11 @@ export function TripDetailHero({
 
       {/* Overlay Content */}
       <div className="relative h-full flex items-end">
-        <div className="container mx-auto px-4 pb-12 max-w-7xl">
+        <div className="container mx-auto px-4 pb-16 max-w-7xl">
           <div className="max-w-3xl">
             {/* Seats Badge */}
             {seatsAvailable > 0 && (
-              <div className="inline-block mb-4">
+              <div className="inline-block mb-5">
                 <span className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-semibold text-gray-900">
                   {seatsAvailable} seats left
                 </span>
@@ -34,29 +34,15 @@ export function TripDetailHero({
             )}
 
             {/* Title */}
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 leading-tight">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight drop-shadow-lg">
               {title}
             </h1>
 
-            {/* Tags */}
-            {tags && tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-4">
-                {tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium text-white"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* Location and Date */}
-            <div className="flex flex-wrap items-center gap-6 text-white">
-              <div className="flex items-center gap-2">
+            {/* Location and Date - More Prominent */}
+            <div className="flex flex-wrap items-center gap-6 mb-5 text-white">
+              <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-sm px-4 py-2.5 rounded-lg">
                 <svg
-                  className="w-6 h-6"
+                  className="w-6 h-6 flex-shrink-0"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -74,12 +60,12 @@ export function TripDetailHero({
                     d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                   />
                 </svg>
-                <span className="text-lg font-medium">{location}</span>
+                <span className="text-lg font-semibold">{location}</span>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-sm px-4 py-2.5 rounded-lg">
                 <svg
-                  className="w-6 h-6"
+                  className="w-6 h-6 flex-shrink-0"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -91,13 +77,28 @@ export function TripDetailHero({
                     d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                   />
                 </svg>
-                <span className="text-lg font-medium">{dateRange}</span>
+                <span className="text-lg font-semibold">{dateRange}</span>
               </div>
             </div>
+
+            {/* Tags - Read-only informational chips */}
+            {tags && tags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm font-medium text-white border border-white/30"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
     </div>
   );
 }
+
 

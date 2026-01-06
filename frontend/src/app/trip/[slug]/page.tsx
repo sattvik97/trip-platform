@@ -64,18 +64,18 @@ export default async function TripDetailPage({
         />
 
         {/* Main Content */}
-        <div className="container mx-auto px-4 py-12 max-w-7xl">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+        <div className="container mx-auto px-4 py-8 md:py-12 max-w-7xl">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
             {/* Left Column - Main Content */}
-            <div className="lg:col-span-2 space-y-12">
+            <div className="lg:col-span-2 space-y-10">
               {/* Overview Section */}
               {trip.description && (
-                <section>
-                  <h2 className="text-3xl font-bold text-gray-900 mb-6">
+                <section className="border-b border-gray-200 pb-10">
+                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 md:mb-6">
                     About this trip
                   </h2>
                   <div className="prose prose-lg max-w-none">
-                    <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+                    <p className="text-gray-700 leading-relaxed whitespace-pre-line text-base md:text-lg">
                       {trip.description}
                     </p>
                   </div>
@@ -84,8 +84,8 @@ export default async function TripDetailPage({
 
               {/* Highlights Section */}
               {highlights.length > 0 && (
-                <section>
-                  <h2 className="text-3xl font-bold text-gray-900 mb-6">
+                <section className="border-b border-gray-200 pb-10">
+                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 md:mb-6">
                     Trip Highlights
                   </h2>
                   <ul className="space-y-4">
@@ -114,7 +114,7 @@ export default async function TripDetailPage({
               {/* Itinerary Section */}
               {itinerary.length > 0 && (
                 <section>
-                  <h2 className="text-3xl font-bold text-gray-900 mb-6">
+                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 md:mb-6">
                     Itinerary
                   </h2>
                   <div className="space-y-8">
