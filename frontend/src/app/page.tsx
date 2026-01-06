@@ -4,18 +4,57 @@ import { Footer } from "@/src/components/layout/Footer";
 import { HeroSearch } from "@/src/components/home/HeroSearch";
 import { SliderSection } from "@/src/components/home/SliderSection";
 import { GridSection } from "@/src/components/home/GridSection";
-import { getTrips } from "@/src/lib/api/trips";
+import {
+  HOMEPAGE_CATEGORIES,
+  getCategoryViewAllUrl,
+  type HomepageCategory,
+} from "@/src/config/categories";
+import { fetchCategoryTrips } from "@/src/lib/categories";
+
+import type { Trip } from "@/src/types/trip";
+
+interface CategorySectionProps {
+  category: HomepageCategory;
+  trips: Trip[];
+}
+
+function CategorySection({ category, trips }: CategorySectionProps) {
+  const viewAllHref = getCategoryViewAllUrl(category);
+  const displayTrips = trips.slice(0, category.displayLimit || 3);
+
+  if (category.sectionType === "slider") {
+    return (
+      <SliderSection
+        title={category.title}
+        trips={displayTrips}
+        viewAllHref={viewAllHref}
+      />
+    );
+  }
+
+  return (
+    <GridSection
+      title={category.title}
+      trips={displayTrips}
+      columns={category.gridColumns || 3}
+      viewAllHref={viewAllHref}
+    />
+  );
+}
 
 async function HomepageSections() {
-  // Fetch trips for all sections (same data for now, can be filtered later)
-  const trips = await getTrips({ page: 1, limit: 20 });
+  // Fetch trips for all categories efficiently (deduplicates API calls)
+  const categoryTripsMap = await fetchCategoryTrips(HOMEPAGE_CATEGORIES);
 
   return (
     <div className="py-12">
-      <SliderSection title="Upcoming Trips" trips={trips} />
-      <GridSection title="Trekking Adventures" trips={trips} />
-      <SliderSection title="Stargazing & Experiences" trips={trips} />
-      <GridSection title="Solo Travel Friendly" trips={trips} />
+      {HOMEPAGE_CATEGORIES.map((category) => (
+        <CategorySection
+          key={category.id}
+          category={category}
+          trips={categoryTripsMap.get(category.id) || []}
+        />
+      ))}
     </div>
   );
 }

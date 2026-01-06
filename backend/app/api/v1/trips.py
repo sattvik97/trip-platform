@@ -38,6 +38,7 @@ def list_trips_api(
     min_price: Optional[int] = Query(None, ge=0),
     max_price: Optional[int] = Query(None, ge=0),
     start_date: Optional[date] = Query(None),
+    tag: Optional[List[str]] = Query(None),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
 ):
@@ -47,6 +48,7 @@ def list_trips_api(
         min_price=min_price,
         max_price=max_price,
         start_date=start_date,
+        tags=tag,
         limit=limit,
         offset=offset,
     )

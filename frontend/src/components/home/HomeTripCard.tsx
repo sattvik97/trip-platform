@@ -5,6 +5,8 @@ interface HomeTripCardProps {
   location: string;
   date: string;
   seatsAvailable?: number;
+  price?: number;
+  categoryBadge?: string;
   imageUrl?: string;
   organizerId: string;
   tripSlug: string;
@@ -15,14 +17,16 @@ export function HomeTripCard({
   location,
   date,
   seatsAvailable = 12,
+  price,
+  categoryBadge,
   imageUrl,
   organizerId,
   tripSlug,
 }: HomeTripCardProps) {
   return (
     <Link
-      href={`/trips/${organizerId}/${tripSlug}`}
-      className="block bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-200 flex-shrink-0 w-80 md:w-96 hover:scale-[1.02]"
+      href={`/trip/${tripSlug}`}
+      className="block bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-200 w-full hover:scale-[1.02]"
     >
       {/* Image */}
       <div className="relative h-48 bg-gradient-to-br from-blue-400 to-purple-500">
@@ -37,9 +41,15 @@ export function HomeTripCard({
             {title.charAt(0)}
           </div>
         )}
+        {/* Category Badge */}
+        {categoryBadge && (
+          <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-xs font-semibold text-gray-700 uppercase tracking-wide">
+            {categoryBadge}
+          </div>
+        )}
         {/* Seats Badge */}
         <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium text-gray-700">
-          {seatsAvailable} seats
+          {seatsAvailable} seats left
         </div>
       </div>
 
@@ -48,6 +58,12 @@ export function HomeTripCard({
         <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">
           {title}
         </h3>
+        {price !== undefined && (
+          <div className="mb-3">
+            <span className="text-2xl font-bold text-gray-900">₹{price.toLocaleString()}</span>
+            <span className="text-sm text-gray-500 ml-1">per person</span>
+          </div>
+        )}
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-gray-600">
             <svg

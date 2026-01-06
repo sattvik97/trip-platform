@@ -48,7 +48,7 @@ async function TripsContent({
   const validPage = page > 0 ? page : 1;
 
   const limit = variant === "primary" ? 20 : 4;
-  const trips = await getTrips(validPage, limit);
+  const trips = await getTrips({ page: validPage, limit });
   const hasMore = trips.length === limit;
 
   return (

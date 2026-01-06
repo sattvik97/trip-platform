@@ -7,6 +7,7 @@ export interface GetTripsParams {
   min_price?: number;
   max_price?: number;
   start_date?: string;
+  tags?: string[];
 }
 
 export async function getTrips(
@@ -20,6 +21,7 @@ export async function getTrips(
     min_price,
     max_price,
     start_date,
+    tags,
   } = params;
 
   const offset = (page - 1) * limit;
@@ -39,6 +41,12 @@ export async function getTrips(
   }
   if (start_date) {
     url.searchParams.set("start_date", start_date);
+  }
+  if (tags && tags.length > 0) {
+    // Add multiple tag parameters using append() for array support
+    tags.forEach((tag) => {
+      url.searchParams.append("tag", tag);
+    });
   }
 
   try {

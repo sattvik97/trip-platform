@@ -28,7 +28,7 @@ function CuratedTripsGrid({ trips }: { trips: Trip[] }) {
 }
 
 async function CuratedTripsContent() {
-  const trips = await getTrips(1, 3);
+  const trips = await getTrips({ page: 1, limit: 3 });
 
   return <CuratedTripsGrid trips={trips} />;
 }

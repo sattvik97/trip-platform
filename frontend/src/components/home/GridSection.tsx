@@ -6,6 +6,7 @@ interface GridSectionProps {
   title: string;
   trips: Trip[];
   columns?: 3 | 4;
+  viewAllHref?: string;
 }
 
 function formatDate(dateString: string): string {
@@ -17,7 +18,7 @@ function formatDate(dateString: string): string {
   });
 }
 
-export function GridSection({ title, trips, columns = 3 }: GridSectionProps) {
+export function GridSection({ title, trips, columns = 3, viewAllHref = "/trips" }: GridSectionProps) {
   const gridColsClass =
     columns === 3
       ? "md:grid-cols-2 lg:grid-cols-3"
@@ -32,7 +33,7 @@ export function GridSection({ title, trips, columns = 3 }: GridSectionProps) {
           <div className="text-center py-12">
             <p className="text-gray-500 text-lg mb-6">Trips coming soon</p>
             <Link
-              href="/trips"
+              href={viewAllHref}
               className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium transition-colors"
             >
               View all →
@@ -55,7 +56,7 @@ export function GridSection({ title, trips, columns = 3 }: GridSectionProps) {
             </div>
             <div className="flex justify-end mt-6">
               <Link
-                href="/trips"
+                href={viewAllHref}
                 className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium transition-colors"
               >
                 View all →

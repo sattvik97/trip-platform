@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 from datetime import date
-from sqlalchemy import func
+from sqlalchemy import func, or_
 
 from app.models.trip import Trip
 from app.models.booking import Booking
@@ -121,6 +121,7 @@ def list_trips_filtered(
     min_price: Optional[int] = None,
     max_price: Optional[int] = None,
     start_date: Optional[date] = None,
+    tags: Optional[List[str]] = None,
     limit: int = 20,
     offset: int = 0,
 ) -> List[Trip]:
@@ -137,6 +138,12 @@ def list_trips_filtered(
 
     if start_date:
         query = query.filter(Trip.start_date >= start_date)
+
+    # Tag filtering with OR operation (trip must have at least one of the tags)
+    if tags and len(tags) > 0:
+        # Create OR conditions: trip.tags contains any of the requested tags
+        tag_conditions = [Trip.tags.contains([tag]) for tag in tags]
+        query = query.filter(or_(*tag_conditions))
 
     return (
         query
