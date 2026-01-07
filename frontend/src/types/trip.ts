@@ -10,6 +10,7 @@ export interface Trip {
   end_date: string; // ISO date string
   total_seats: number;
   available_seats: number;
+  status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   tags: string[] | null;
   cover_image_url: string | null;
   gallery_images: string[] | null;

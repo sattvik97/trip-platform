@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, FormEvent, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { createTrip, ItineraryItem, TripTag } from "@/src/lib/api/organizer";
+import { useRouter, useParams } from "next/navigation";
+import { getOrganizerTrip, updateTrip, ItineraryItem, TripTag } from "@/src/lib/api/organizer";
 import { getToken } from "@/src/lib/auth";
+import { TripImageUploader } from "@/src/components/organizer/TripImageUploader";
 
 const TRIP_TAGS: TripTag[] = [
   "TREK",
@@ -28,8 +29,11 @@ const TRIP_TAGS: TripTag[] = [
   "PREMIUM",
 ];
 
-export default function CreateTripPage() {
+export default function EditTripPage() {
   const router = useRouter();
+  const params = useParams();
+  const tripId = params.tripId as string;
+
   const [title, setTitle] = useState("");
   const [location, setLocation] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -41,6 +45,8 @@ export default function CreateTripPage() {
   const [itinerary, setItinerary] = useState<ItineraryItem[]>([]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingTrip, setIsLoadingTrip] = useState(true);
+  const [tripStatus, setTripStatus] = useState<"DRAFT" | "PUBLISHED" | "ARCHIVED">("DRAFT");
   
   const MAX_DESCRIPTION_LENGTH = 2000;
 
@@ -54,6 +60,53 @@ export default function CreateTripPage() {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
     return diffDays;
   }, [startDate, endDate]);
+
+  // Fetch trip data on load
+  useEffect(() => {
+    const fetchTrip = async () => {
+      const token = getToken();
+      if (!token) {
+        router.push("/organizer/login");
+        return;
+      }
+
+      try {
+        setIsLoadingTrip(true);
+        const trip = await getOrganizerTrip(tripId);
+        
+        // Check if trip is DRAFT
+        if (trip.status !== "DRAFT") {
+          setError("Only draft trips can be edited");
+          setIsLoadingTrip(false);
+          return;
+        }
+
+        // Prefill all fields
+        setTitle(trip.title);
+        setLocation(trip.destination);
+        setStartDate(trip.start_date);
+        setEndDate(trip.end_date);
+        setPrice(trip.price.toString());
+        setTotalSeats(trip.total_seats.toString());
+        setDescription(trip.description || "");
+        setSelectedTags((trip.tags || []) as TripTag[]);
+        setItinerary(trip.itinerary || []);
+        setTripStatus(trip.status);
+      } catch (err) {
+        if (err instanceof Error && err.message === "Authentication failed") {
+          router.push("/organizer/login");
+        } else {
+          setError(err instanceof Error ? err.message : "Failed to load trip");
+        }
+      } finally {
+        setIsLoadingTrip(false);
+      }
+    };
+
+    if (tripId) {
+      fetchTrip();
+    }
+  }, [tripId, router]);
 
   // Initialize/update itinerary when dates change
   useEffect(() => {
@@ -74,13 +127,6 @@ export default function CreateTripPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [numberOfDays]);
-
-  useEffect(() => {
-    const token = getToken();
-    if (!token) {
-      router.push("/organizer/login");
-    }
-  }, [router]);
 
   const updateItineraryItem = (day: number, field: "title" | "description", value: string) => {
     setItinerary((prev) =>
@@ -142,7 +188,7 @@ export default function CreateTripPage() {
     setIsLoading(true);
 
     try {
-      const newTrip = await createTrip({
+      await updateTrip(tripId, {
         title,
         destination: location,
         start_date: startDate,
@@ -153,26 +199,37 @@ export default function CreateTripPage() {
         tags: selectedTags.length > 0 ? selectedTags : undefined,
         itinerary: itinerary.length > 0 ? itinerary : undefined,
       });
-      // Redirect to edit page so user can add images
-      router.push(`/organizer/trips/${newTrip.id}/edit`);
+      router.push("/organizer/dashboard");
     } catch (err) {
       if (err instanceof Error && err.message === "Authentication failed") {
         router.push("/organizer/login");
       } else {
-        setError(err instanceof Error ? err.message : "Failed to create trip");
+        setError(err instanceof Error ? err.message : "Failed to update trip");
       }
     } finally {
       setIsLoading(false);
     }
   };
 
+  if (isLoadingTrip) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-2xl mx-auto">
+          <div className="text-center py-12">
+            <p className="text-gray-500">Loading trip...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Create Trip</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Edit Trip</h1>
           <p className="mt-2 text-sm text-gray-600">
-            Fill in the details to create a new trip
+            Update the details of your trip
           </p>
         </div>
 
@@ -389,31 +446,9 @@ export default function CreateTripPage() {
               )}
             </div>
 
-            {/* Image Upload Note */}
-            <div className="border border-gray-200 rounded-lg p-4 bg-blue-50">
-              <div className="flex items-start gap-3">
-                <svg
-                  className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                <div>
-                  <p className="text-sm font-medium text-blue-900">
-                    Trip Images
-                  </p>
-                  <p className="text-sm text-blue-700 mt-1">
-                    After creating your trip, you'll be redirected to the edit page where you can upload up to 8 images. The first image will be used as the cover image.
-                  </p>
-                </div>
-              </div>
+            {/* Image Uploader Section */}
+            <div>
+              <TripImageUploader tripId={tripId} tripStatus={tripStatus} />
             </div>
 
             {/* Itinerary Section */}
@@ -498,7 +533,7 @@ export default function CreateTripPage() {
                 disabled={isLoading}
                 className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading ? "Creating..." : "Create Trip"}
+                {isLoading ? "Updating..." : "Update Trip"}
               </button>
             </div>
           </div>
@@ -507,3 +542,4 @@ export default function CreateTripPage() {
     </div>
   );
 }
+

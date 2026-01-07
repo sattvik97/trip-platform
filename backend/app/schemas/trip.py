@@ -2,6 +2,7 @@ from datetime import date
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from app.models.trip_tag import TripTag
+from app.models.trip import TripStatus
 
 class ItineraryItem(BaseModel):
     day: int
@@ -51,6 +52,7 @@ class TripResponse(TripBase):
     organizer_id: str
     total_seats: int
     available_seats: int
+    status: TripStatus
     tags: Optional[List[TripTag]] = None
     cover_image_url: Optional[str] = None
     gallery_images: Optional[List[str]] = None
@@ -69,6 +71,7 @@ class OrganizerTripResponse(BaseModel):
     start_date: date
     end_date: date
     total_seats: int
+    status: TripStatus
     tags: Optional[List[TripTag]] = None
     cover_image_url: Optional[str] = None
     gallery_images: Optional[List[str]] = None

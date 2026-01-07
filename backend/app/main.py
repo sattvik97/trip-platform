@@ -1,5 +1,8 @@
 ﻿from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
+import os
 from app.api.v1.trips import router as trips_router
 from app.api.v1.organizers import router as organizers_router
 from app.api.v1.bookings import router as bookings_router
@@ -8,8 +11,16 @@ from app.api.v1.organizer_bookings import router as organizer_bookings_router
 from app.api.v1.user_bookings import router as user_bookings_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.user_auth import router as user_auth_router
+from app.api.v1.trip_images import router as trip_images_router
 
 app = FastAPI(title="Trip Discovery API")
+
+# Mount static files for media
+# Use absolute path to ensure it works regardless of where the app is run from
+backend_dir = Path(__file__).parent.parent  # Go up from app/main.py to backend/
+media_dir = backend_dir / "media"
+media_dir.mkdir(exist_ok=True)
+app.mount("/media", StaticFiles(directory=str(media_dir)), name="media")
 
 # Add CORS middleware
 app.add_middleware(
@@ -70,4 +81,10 @@ app.include_router(
     user_auth_router,
     prefix="/api/v1/user/auth",
     tags=["User Authentication"],
+)
+
+app.include_router(
+    trip_images_router,
+    prefix="/api/v1",
+    tags=["Trip Images"],
 )

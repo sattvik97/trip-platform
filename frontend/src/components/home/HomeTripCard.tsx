@@ -1,5 +1,18 @@
 import Link from "next/link";
 
+const apiBaseUrl =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+
+function getImageUrl(imageUrl: string | undefined): string | undefined {
+  if (!imageUrl) return undefined;
+  // If URL is already absolute, return as is
+  if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
+    return imageUrl;
+  }
+  // If URL is relative, prepend API base URL
+  return `${apiBaseUrl}${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`;
+}
+
 interface HomeTripCardProps {
   title: string;
   location: string;
@@ -32,7 +45,7 @@ export function HomeTripCard({
       <div className="relative h-48 bg-gradient-to-br from-blue-400 to-purple-500">
         {imageUrl ? (
           <img
-            src={imageUrl}
+            src={getImageUrl(imageUrl)}
             alt={title}
             className="w-full h-full object-cover"
           />

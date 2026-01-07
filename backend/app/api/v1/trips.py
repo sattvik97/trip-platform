@@ -13,12 +13,19 @@ from app.crud.trip import (
     get_trip_by_id,
     list_trips,
     soft_delete_trip,
+    publish_trip,
+    archive_trip,
+    unarchive_trip,
+    get_weekend_getaways,
+    search_trips,
 )
 from app.crud.availability import get_available_seats
-from app.core.auth import get_current_end_user
+from app.core.auth import get_current_end_user, require_organizer
 from app.models.booking import Booking
 from app.models.end_user import EndUser
 from app.models.organizer import Organizer
+from app.models.trip import TripStatus
+from app.crud.trip_image import get_trip_images
 
 router = APIRouter()
 
@@ -62,6 +69,71 @@ def list_trips_api(
     return [map_trip_response(db, trip) for trip in trips]
 
 
+@router.get("/search", response_model=List[TripResponse])
+def search_trips_api(
+    db: Session = Depends(get_db),
+    q: Optional[str] = Query(None, description="Search query matching title or destination"),
+    start_date: Optional[date] = Query(None, description="Exact minimum start date"),
+    end_date: Optional[date] = Query(None, description="Exact maximum end date"),
+    range_start: Optional[date] = Query(None, description="Flexible range start date"),
+    range_end: Optional[date] = Query(None, description="Flexible range end date"),
+    month: Optional[str] = Query(None, description="Month filter in YYYY-MM format"),
+    people: Optional[int] = Query(None, ge=1, description="Minimum number of available seats"),
+    min_price: Optional[int] = Query(None, ge=0, description="Minimum price"),
+    max_price: Optional[int] = Query(None, ge=0, description="Maximum price"),
+    min_days: Optional[int] = Query(None, ge=1, description="Minimum trip duration in days"),
+    max_days: Optional[int] = Query(None, ge=1, description="Maximum trip duration in days"),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+):
+    """
+    Optimized trip search endpoint with structured filters.
+    Returns only PUBLISHED trips with start_date >= today.
+    Uses indexed fields only for fast queries (<300ms target).
+    
+    Date filtering modes (mutually exclusive, priority order):
+    1. month (YYYY-MM) - filters trips starting in that month
+    2. range_start/range_end - flexible date range
+    3. start_date/end_date - exact date range
+    
+    Duration filtering: min_days/max_days (calculated as end_date - start_date + 1)
+    
+    Future-proofing: Structure allows vector search to be added later
+    without breaking this API.
+    """
+    trips = search_trips(
+        db,
+        q=q,
+        start_date=start_date,
+        end_date=end_date,
+        range_start=range_start,
+        range_end=range_end,
+        month=month,
+        people=people,
+        min_price=min_price,
+        max_price=max_price,
+        min_days=min_days,
+        max_days=max_days,
+        limit=limit,
+        offset=offset,
+    )
+
+    return [map_trip_response(db, trip) for trip in trips]
+
+
+@router.get("/weekend-getaways", response_model=List[TripResponse])
+def get_weekend_getaways_api(
+    db: Session = Depends(get_db),
+):
+    """
+    Get weekend getaways for the next upcoming weekend.
+    Returns PUBLISHED trips that start on Friday/Saturday and end on Sunday/Monday,
+    with duration <= 4 days, occurring in the next upcoming weekend only.
+    """
+    trips = get_weekend_getaways(db)
+    return [map_trip_response(db, trip) for trip in trips]
+
+
 @router.get("/{slug}", response_model=TripResponse)
 def get_trip_api(slug: str, db: Session = Depends(get_db)):
     trip = get_trip_by_slug(db, slug)
@@ -76,6 +148,105 @@ def delete_trip_api(slug: str, db: Session = Depends(get_db)):
     success = soft_delete_trip(db, slug)
     if not success:
         raise HTTPException(status_code=404, detail="Trip not found")
+
+
+@router.post(
+    "/{trip_id}/publish",
+    status_code=status.HTTP_200_OK,
+)
+def publish_trip_api(
+    trip_id: str,
+    db: Session = Depends(get_db),
+    organizer_id: str = Depends(require_organizer),
+):
+    """
+    Publish a trip.
+    Valid transition: DRAFT -> PUBLISHED.
+    """
+    try:
+        trip = publish_trip(db, trip_id, organizer_id)
+        return map_trip_response(db, trip)
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Trip not found",
+        )
+    except PermissionError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to update this trip",
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+
+
+@router.post(
+    "/{trip_id}/archive",
+    status_code=status.HTTP_200_OK,
+)
+def archive_trip_api(
+    trip_id: str,
+    db: Session = Depends(get_db),
+    organizer_id: str = Depends(require_organizer),
+):
+    """
+    Archive a trip.
+    Valid transition: PUBLISHED -> ARCHIVED.
+    """
+    try:
+        trip = archive_trip(db, trip_id, organizer_id)
+        return map_trip_response(db, trip)
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Trip not found",
+        )
+    except PermissionError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to update this trip",
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+
+
+@router.post(
+    "/{trip_id}/unarchive",
+    status_code=status.HTTP_200_OK,
+)
+def unarchive_trip_api(
+    trip_id: str,
+    db: Session = Depends(get_db),
+    organizer_id: str = Depends(require_organizer),
+):
+    """
+    Unarchive a trip.
+    Valid transition: ARCHIVED -> DRAFT.
+    """
+    try:
+        trip = unarchive_trip(db, trip_id, organizer_id)
+        return map_trip_response(db, trip)
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Trip not found",
+        )
+    except PermissionError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to update this trip",
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
 
 
 class TravelerDetail(BaseModel):
@@ -124,6 +295,22 @@ def create_booking_request(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Trip is not active"
+        )
+
+    # Booking allowed only for PUBLISHED trips
+    if trip.status != TripStatus.PUBLISHED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Trip is not open for bookings",
+        )
+    
+    # Booking guard: prevent booking if today >= start_date
+    from datetime import date
+    today = date.today()
+    if today >= trip.start_date:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Bookings are closed for this trip",
         )
     
     # Prevent organizer from booking their own trip
@@ -200,6 +387,18 @@ def create_booking_request(
 
 
 def map_trip_response(db: Session, trip):
+    # Get cover image from trip_images table (position 0)
+    images = get_trip_images(db, trip.id)
+    cover_image_url = None
+    if images and len(images) > 0:
+        # Find image with position 0 (cover image)
+        cover_image = next((img for img in images if img.position == 0), images[0])
+        cover_image_url = cover_image.image_url if cover_image else None
+    
+    # Fallback to legacy cover_image_url if no images in new table
+    if not cover_image_url:
+        cover_image_url = trip.cover_image_url
+    
     return {
         "id": trip.id,
         "slug": trip.slug,
@@ -212,8 +411,9 @@ def map_trip_response(db: Session, trip):
         "end_date": trip.end_date,
         "total_seats": trip.total_seats,
         "available_seats": get_available_seats(db, trip.id),
+        "status": getattr(trip, "status", TripStatus.DRAFT),
         "tags": trip.tags,
-        "cover_image_url": trip.cover_image_url,
+        "cover_image_url": cover_image_url,
         "gallery_images": trip.gallery_images,
         "itinerary": trip.itinerary,
     }

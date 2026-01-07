@@ -16,6 +16,13 @@ from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.db.base import Base
 from app.models.trip_tag import TripTag
+import enum
+
+
+class TripStatus(str, enum.Enum):
+    DRAFT = "DRAFT"
+    PUBLISHED = "PUBLISHED"
+    ARCHIVED = "ARCHIVED"
 
 class Trip(Base):
     __tablename__ = "trips"
@@ -34,6 +41,12 @@ class Trip(Base):
     end_date = Column(Date, nullable=False)
 
     total_seats = Column(Integer, nullable=False)  # ✅ REQUIRED
+
+    status = Column(
+        SQLEnum(TripStatus, name="tripstatus"),
+        nullable=False,
+        server_default=TripStatus.DRAFT.value,
+    )
 
     tags = Column(ARRAY(String), nullable=True)
     cover_image_url = Column(String, nullable=True)

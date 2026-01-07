@@ -10,6 +10,7 @@ loguru
 email-validator
 pyjwt
 python-multipart
+aiofiles
 
 # Password hashing (PINNED to avoid bcrypt runtime crash)
 passlib==1.7.4

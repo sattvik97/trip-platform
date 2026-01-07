@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 import { Header } from "@/src/components/layout/Header";
 import { Footer } from "@/src/components/layout/Footer";
-import { TripDetailHero } from "@/src/components/trips/TripDetailHero";
+import { TripHeroImage } from "@/src/components/trips/TripHeroImage";
+import { TripImageGallery } from "@/src/components/trips/TripImageGallery";
 import { BookingCard } from "@/src/components/trips/BookingCard";
+import { ExpandableText } from "@/src/components/trips/ExpandableText";
 import { getTripBySlug } from "@/src/lib/api/trips";
 
 function calculateDuration(startDate: string, endDate: string): string {
@@ -54,38 +56,40 @@ export default async function TripDetailPage({
     <div className="min-h-screen flex flex-col bg-white">
       <Header />
       <main className="flex-grow">
-        {/* Hero Section */}
-        <TripDetailHero
+        {/* Hero Image Section */}
+        <TripHeroImage
+          tripId={trip.id}
           title={trip.title}
           location={trip.destination}
           dateRange={dateRange}
-          seatsAvailable={trip.available_seats}
           tags={trip.tags}
+          seatsAvailable={trip.available_seats}
         />
 
         {/* Main Content */}
         <div className="container mx-auto px-4 py-8 md:py-12 max-w-7xl">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
+          {/* Image Gallery */}
+          <TripImageGallery tripId={trip.id} />
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-16">
             {/* Left Column - Main Content */}
-            <div className="lg:col-span-2 space-y-10">
+            <div className="lg:col-span-2 space-y-12">
               {/* Overview Section */}
               {trip.description && (
-                <section className="border-b border-gray-200 pb-10">
-                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 md:mb-6">
+                <section>
+                  <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
                     About this trip
                   </h2>
                   <div className="prose prose-lg max-w-none">
-                    <p className="text-gray-700 leading-relaxed whitespace-pre-line text-base md:text-lg">
-                      {trip.description}
-                    </p>
+                    <ExpandableText text={trip.description} maxLength={500} />
                   </div>
                 </section>
               )}
 
               {/* Highlights Section */}
               {highlights.length > 0 && (
-                <section className="border-b border-gray-200 pb-10">
-                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 md:mb-6">
+                <section>
+                  <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
                     Trip Highlights
                   </h2>
                   <ul className="space-y-4">
@@ -114,35 +118,38 @@ export default async function TripDetailPage({
               {/* Itinerary Section */}
               {itinerary.length > 0 && (
                 <section>
-                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 md:mb-6">
+                  <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-8">
                     Itinerary
                   </h2>
-                  <div className="space-y-8">
+                  <div className="space-y-6">
                     {itinerary
                       .slice()
                       .sort((a, b) => a.day - b.day)
                       .map((item) => (
-                      <div key={item.day} className="border-l-4 border-blue-600 pl-6">
-                        <div className="flex items-baseline gap-3 mb-2">
-                          <span className="text-blue-600 font-bold text-lg">
-                            Day {item.day}
-                          </span>
-                          <h3 className="text-xl font-semibold text-gray-900">
-                            {item.title}
-                          </h3>
+                        <div
+                          key={item.day}
+                          className="bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex items-baseline gap-4 mb-3">
+                            <span className="text-blue-600 font-bold text-xl">
+                              Day {item.day}
+                            </span>
+                            <h3 className="text-xl md:text-2xl font-semibold text-gray-900">
+                              {item.title}
+                            </h3>
+                          </div>
+                          <p className="text-gray-700 leading-relaxed text-base md:text-lg">
+                            {item.description}
+                          </p>
                         </div>
-                        <p className="text-gray-700 leading-relaxed">
-                          {item.description}
-                        </p>
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 </section>
               )}
 
               {!trip.description && highlights.length === 0 && itinerary.length === 0 && (
                 <section>
-                  <p className="text-gray-500">More details coming soon.</p>
+                  <p className="text-gray-500 text-lg">More details coming soon.</p>
                 </section>
               )}
             </div>

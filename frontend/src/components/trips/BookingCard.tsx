@@ -14,6 +14,7 @@ interface BookingCardProps {
   duration: string;
   groupSize: string;
   seatsAvailable: number;
+  status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
 }
 
 export function BookingCard({
@@ -24,6 +25,7 @@ export function BookingCard({
   duration,
   groupSize,
   seatsAvailable,
+  status,
 }: BookingCardProps) {
   const router = useRouter();
   const { isAuthenticated, role } = useAuth();
@@ -70,6 +72,12 @@ export function BookingCard({
 
   // Determine button text and disabled state
   const getButtonState = () => {
+    if (status === "ARCHIVED") {
+      return { text: "Trip Archived", disabled: true };
+    }
+    if (status && status !== "PUBLISHED") {
+      return { text: "Bookings Not Available", disabled: true };
+    }
     if (seatsAvailable === 0) {
       return { text: "No Seats Available", disabled: true };
     }
@@ -93,7 +101,7 @@ export function BookingCard({
   const buttonState = getButtonState();
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-lg p-6 sticky top-24">
+    <div className="bg-white border border-gray-200 rounded-xl shadow-lg p-6">
       {/* Price */}
       <div className="mb-6">
         <div className="flex items-baseline gap-2">

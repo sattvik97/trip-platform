@@ -10,6 +10,7 @@ export interface OrganizerTrip {
   start_date: string; // ISO date string
   end_date: string; // ISO date string
   total_seats: number;
+   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   tags: string[] | null;
   cover_image_url: string | null;
   gallery_images: string[] | null;
@@ -162,7 +163,9 @@ export async function createTrip(
   return await response.json();
 }
 
-export async function getOrganizerTrips(): Promise<OrganizerTrip[]> {
+export async function getOrganizerTrips(
+  timeFilter?: "upcoming" | "ongoing" | "past"
+): Promise<OrganizerTrip[]> {
   const apiBaseUrl =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
   const token = getToken();
@@ -171,7 +174,12 @@ export async function getOrganizerTrips(): Promise<OrganizerTrip[]> {
     throw new Error("Not authenticated");
   }
 
-  const response = await fetch(`${apiBaseUrl}/api/v1/organizer/trips`, {
+  const url = new URL(`${apiBaseUrl}/api/v1/organizer/trips`);
+  if (timeFilter) {
+    url.searchParams.append("time", timeFilter);
+  }
+
+  const response = await fetch(url.toString(), {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -185,6 +193,158 @@ export async function getOrganizerTrips(): Promise<OrganizerTrip[]> {
       throw new Error("Authentication failed");
     }
     throw new Error(`Failed to fetch trips: ${response.statusText}`);
+  }
+
+  return await response.json();
+}
+
+export async function publishTrip(tripId: string): Promise<OrganizerTrip> {
+  const apiBaseUrl =
+    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+  const token = getToken();
+
+  if (!token) {
+    throw new Error("Not authenticated");
+  }
+
+  const response = await fetch(`${apiBaseUrl}/api/v1/trips/${tripId}/publish`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error("Authentication failed");
+    }
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.detail || `Failed to publish trip: ${response.statusText}`
+    );
+  }
+
+  return await response.json();
+}
+
+export async function archiveTrip(tripId: string): Promise<OrganizerTrip> {
+  const apiBaseUrl =
+    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+  const token = getToken();
+
+  if (!token) {
+    throw new Error("Not authenticated");
+  }
+
+  const response = await fetch(`${apiBaseUrl}/api/v1/trips/${tripId}/archive`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error("Authentication failed");
+    }
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.detail || `Failed to archive trip: ${response.statusText}`
+    );
+  }
+
+  return await response.json();
+}
+
+export async function unarchiveTrip(tripId: string): Promise<OrganizerTrip> {
+  const apiBaseUrl =
+    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+  const token = getToken();
+
+  if (!token) {
+    throw new Error("Not authenticated");
+  }
+
+  const response = await fetch(`${apiBaseUrl}/api/v1/trips/${tripId}/unarchive`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error("Authentication failed");
+    }
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.detail || `Failed to unarchive trip: ${response.statusText}`
+    );
+  }
+
+  return await response.json();
+}
+
+export async function getOrganizerTrip(tripId: string): Promise<OrganizerTrip> {
+  const apiBaseUrl =
+    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+  const token = getToken();
+
+  if (!token) {
+    throw new Error("Not authenticated");
+  }
+
+  const response = await fetch(`${apiBaseUrl}/api/v1/organizer/trips/${tripId}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error("Authentication failed");
+    }
+    throw new Error(`Failed to fetch trip: ${response.statusText}`);
+  }
+
+  return await response.json();
+}
+
+export async function updateTrip(
+  tripId: string,
+  tripData: CreateTripRequest
+): Promise<OrganizerTrip> {
+  const apiBaseUrl =
+    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+  const token = getToken();
+
+  if (!token) {
+    throw new Error("Not authenticated");
+  }
+
+  const response = await fetch(`${apiBaseUrl}/api/v1/organizer/trips/${tripId}`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(tripData),
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error("Authentication failed");
+    }
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.detail || `Failed to update trip: ${response.statusText}`
+    );
   }
 
   return await response.json();

@@ -10,6 +10,22 @@ export interface GetTripsParams {
   tags?: string[];
 }
 
+export interface SearchTripsParams {
+  page?: number;
+  limit?: number;
+  q?: string;
+  start_date?: string;
+  end_date?: string;
+  range_start?: string;
+  range_end?: string;
+  month?: string;
+  people?: number;
+  min_price?: number;
+  max_price?: number;
+  min_days?: number;
+  max_days?: number;
+}
+
 export async function getTrips(
   params: GetTripsParams = {}
 ): Promise<Trip[]> {
@@ -87,6 +103,101 @@ export async function getTripBySlug(
   } catch (error) {
     console.error("Error fetching trip:", error);
     return null;
+  }
+}
+
+export async function getWeekendGetaways(): Promise<Trip[]> {
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/v1/trips/weekend-getaways`, {
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch weekend getaways: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching weekend getaways:", error);
+    return [];
+  }
+}
+
+export async function searchTrips(
+  params: SearchTripsParams = {}
+): Promise<Trip[]> {
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+  const {
+    page = 1,
+    limit = 20,
+    q,
+    start_date,
+    end_date,
+    range_start,
+    range_end,
+    month,
+    people,
+    min_price,
+    max_price,
+    min_days,
+    max_days,
+  } = params;
+
+  const offset = (page - 1) * limit;
+
+  const url = new URL(`${apiBaseUrl}/api/v1/trips/search`);
+  url.searchParams.set("limit", limit.toString());
+  url.searchParams.set("offset", offset.toString());
+
+  if (q) {
+    url.searchParams.set("q", q);
+  }
+  if (start_date) {
+    url.searchParams.set("start_date", start_date);
+  }
+  if (end_date) {
+    url.searchParams.set("end_date", end_date);
+  }
+  if (range_start) {
+    url.searchParams.set("range_start", range_start);
+  }
+  if (range_end) {
+    url.searchParams.set("range_end", range_end);
+  }
+  if (month) {
+    url.searchParams.set("month", month);
+  }
+  if (people !== undefined) {
+    url.searchParams.set("people", people.toString());
+  }
+  if (min_price !== undefined) {
+    url.searchParams.set("min_price", min_price.toString());
+  }
+  if (max_price !== undefined) {
+    url.searchParams.set("max_price", max_price.toString());
+  }
+  if (min_days !== undefined) {
+    url.searchParams.set("min_days", min_days.toString());
+  }
+  if (max_days !== undefined) {
+    url.searchParams.set("max_days", max_days.toString());
+  }
+
+  try {
+    const response = await fetch(url.toString(), {
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to search trips: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error searching trips:", error);
+    return [];
   }
 }
 

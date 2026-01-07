@@ -10,6 +10,7 @@ import {
   type HomepageCategory,
 } from "@/src/config/categories";
 import { fetchCategoryTrips } from "@/src/lib/categories";
+import { getWeekendGetaways } from "@/src/lib/api/trips";
 
 import type { Trip } from "@/src/types/trip";
 
@@ -42,12 +43,35 @@ function CategorySection({ category, trips }: CategorySectionProps) {
   );
 }
 
+async function WeekendGetawaysSection() {
+  const trips = await getWeekendGetaways();
+  
+  return (
+    <SliderSection
+      title="This Weekend Getaways"
+      trips={trips}
+      viewAllHref="/weekend-getaways"
+    />
+  );
+}
+
 async function HomepageSections() {
   // Fetch trips for all categories efficiently (deduplicates API calls)
   const categoryTripsMap = await fetchCategoryTrips(HOMEPAGE_CATEGORIES);
 
   return (
     <div className="py-12">
+      {/* Weekend Getaways - separate section, not mixed with tags */}
+      <Suspense
+        fallback={
+          <div className="text-center py-12">
+            <p className="text-gray-500">Loading weekend getaways...</p>
+          </div>
+        }
+      >
+        <WeekendGetawaysSection />
+      </Suspense>
+      
       {HOMEPAGE_CATEGORIES.map((category) => (
         <CategorySection
           key={category.id}
