@@ -1,10 +1,10 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from app.core.config import settings
 
-DATABASE_URL = "postgresql://trip:trip@localhost:5432/tripdb"
-
+# Use DATABASE_URL from configuration
 engine = create_engine(
-    DATABASE_URL,
+    settings.DATABASE_URL,
     pool_pre_ping=True,
 )
 

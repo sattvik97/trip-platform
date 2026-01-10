@@ -1,4 +1,5 @@
 import { getUserToken } from "../userAuth";
+import { buildApiUrl } from "./config";
 
 export interface UserLoginRequest {
   email: string;
@@ -23,10 +24,7 @@ export interface RegisterResponse {
 export async function registerUser(
   data: UserRegisterRequest
 ): Promise<RegisterResponse> {
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
-
-  const response = await fetch(`${apiBaseUrl}/api/v1/user/auth/register`, {
+  const response = await fetch(buildApiUrl("/api/v1/user/auth/register"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -48,10 +46,7 @@ export async function registerUser(
 export async function loginUser(
   credentials: UserLoginRequest
 ): Promise<LoginResponse> {
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
-
-  const response = await fetch(`${apiBaseUrl}/api/v1/user/auth/login`, {
+  const response = await fetch(buildApiUrl("/api/v1/user/auth/login"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -100,15 +95,13 @@ export interface UserBooking {
 }
 
 export async function getUserBookings(): Promise<UserBooking[]> {
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
   const token = getUserToken();
 
   if (!token) {
     throw new Error("Not authenticated");
   }
 
-  const response = await fetch(`${apiBaseUrl}/api/v1/user/bookings`, {
+  const response = await fetch(buildApiUrl("/api/v1/user/bookings"), {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -131,15 +124,13 @@ export async function getUserBookings(): Promise<UserBooking[]> {
 }
 
 export async function getUserBooking(bookingId: string): Promise<UserBooking> {
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
   const token = getUserToken();
 
   if (!token) {
     throw new Error("Not authenticated");
   }
 
-  const response = await fetch(`${apiBaseUrl}/api/v1/user/bookings/${bookingId}`, {
+  const response = await fetch(buildApiUrl(`/api/v1/user/bookings/${bookingId}`), {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -165,15 +156,13 @@ export async function getUserBooking(bookingId: string): Promise<UserBooking> {
 }
 
 export async function getUserBookingForTrip(tripId: string): Promise<UserBooking | null> {
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
   const token = getUserToken();
 
   if (!token) {
     return null; // Not authenticated, return null
   }
 
-  const response = await fetch(`${apiBaseUrl}/api/v1/user/bookings/trip/${tripId}`, {
+  const response = await fetch(buildApiUrl(`/api/v1/user/bookings/trip/${tripId}`), {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,

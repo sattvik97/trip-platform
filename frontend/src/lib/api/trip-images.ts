@@ -1,7 +1,5 @@
 import { getToken } from "../auth";
-
-const apiBaseUrl =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+import { buildApiUrl } from "./config";
 
 export interface TripImage {
   id: string;
@@ -17,7 +15,7 @@ export interface TripImageListResponse {
 
 export async function getTripImages(tripId: string): Promise<TripImage[]> {
   const response = await fetch(
-    `${apiBaseUrl}/api/v1/trips/${tripId}/images`,
+    buildApiUrl(`/api/v1/trips/${tripId}/images`),
     {
       method: "GET",
       headers: {
@@ -48,7 +46,7 @@ export async function uploadTripImage(
   formData.append("file", file);
 
   const response = await fetch(
-    `${apiBaseUrl}/api/v1/trips/${tripId}/images`,
+    buildApiUrl(`/api/v1/trips/${tripId}/images`),
     {
       method: "POST",
       headers: {
@@ -82,7 +80,7 @@ export async function deleteTripImage(
   }
 
   const response = await fetch(
-    `${apiBaseUrl}/api/v1/trips/${tripId}/images/${imageId}`,
+    buildApiUrl(`/api/v1/trips/${tripId}/images/${imageId}`),
     {
       method: "DELETE",
       headers: {
@@ -114,7 +112,7 @@ export async function reorderTripImages(
   }
 
   const response = await fetch(
-    `${apiBaseUrl}/api/v1/trips/${tripId}/images/reorder`,
+    buildApiUrl(`/api/v1/trips/${tripId}/images/reorder`),
     {
       method: "POST",
       headers: {

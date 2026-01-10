@@ -42,3 +42,4 @@ def downgrade() -> None:
     status_enum.drop(op.get_bind(), checkfirst=True)
 
 
+

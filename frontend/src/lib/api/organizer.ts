@@ -1,4 +1,5 @@
 import { getToken } from "../auth";
+import { buildApiUrl } from "./config";
 
 export interface OrganizerTrip {
   id: string;
@@ -45,10 +46,7 @@ export interface RegisterResponse {
 export async function registerOrganizer(
   data: RegisterRequest
 ): Promise<RegisterResponse> {
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
-
-  const response = await fetch(`${apiBaseUrl}/api/v1/auth/register`, {
+  const response = await fetch(buildApiUrl("/api/v1/auth/register"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -69,10 +67,7 @@ export async function registerOrganizer(
 export async function loginOrganizer(
   credentials: LoginRequest
 ): Promise<LoginResponse> {
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
-
-  const response = await fetch(`${apiBaseUrl}/api/v1/auth/login`, {
+  const response = await fetch(buildApiUrl("/api/v1/auth/login"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -133,15 +128,13 @@ export interface CreateTripRequest {
 export async function createTrip(
   tripData: CreateTripRequest
 ): Promise<OrganizerTrip> {
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
   const token = getToken();
 
   if (!token) {
     throw new Error("Not authenticated");
   }
 
-  const response = await fetch(`${apiBaseUrl}/api/v1/organizer/trips`, {
+  const response = await fetch(buildApiUrl("/api/v1/organizer/trips"), {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -166,15 +159,13 @@ export async function createTrip(
 export async function getOrganizerTrips(
   timeFilter?: "upcoming" | "ongoing" | "past"
 ): Promise<OrganizerTrip[]> {
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
   const token = getToken();
 
   if (!token) {
     throw new Error("Not authenticated");
   }
 
-  const url = new URL(`${apiBaseUrl}/api/v1/organizer/trips`);
+  const url = new URL(buildApiUrl("/api/v1/organizer/trips"));
   if (timeFilter) {
     url.searchParams.append("time", timeFilter);
   }
@@ -199,15 +190,13 @@ export async function getOrganizerTrips(
 }
 
 export async function publishTrip(tripId: string): Promise<OrganizerTrip> {
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
   const token = getToken();
 
   if (!token) {
     throw new Error("Not authenticated");
   }
 
-  const response = await fetch(`${apiBaseUrl}/api/v1/trips/${tripId}/publish`, {
+  const response = await fetch(buildApiUrl(`/api/v1/trips/${tripId}/publish`), {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -229,15 +218,13 @@ export async function publishTrip(tripId: string): Promise<OrganizerTrip> {
 }
 
 export async function archiveTrip(tripId: string): Promise<OrganizerTrip> {
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
   const token = getToken();
 
   if (!token) {
     throw new Error("Not authenticated");
   }
 
-  const response = await fetch(`${apiBaseUrl}/api/v1/trips/${tripId}/archive`, {
+  const response = await fetch(buildApiUrl(`/api/v1/trips/${tripId}/archive`), {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -259,15 +246,13 @@ export async function archiveTrip(tripId: string): Promise<OrganizerTrip> {
 }
 
 export async function unarchiveTrip(tripId: string): Promise<OrganizerTrip> {
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
   const token = getToken();
 
   if (!token) {
     throw new Error("Not authenticated");
   }
 
-  const response = await fetch(`${apiBaseUrl}/api/v1/trips/${tripId}/unarchive`, {
+  const response = await fetch(buildApiUrl(`/api/v1/trips/${tripId}/unarchive`), {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -289,15 +274,13 @@ export async function unarchiveTrip(tripId: string): Promise<OrganizerTrip> {
 }
 
 export async function getOrganizerTrip(tripId: string): Promise<OrganizerTrip> {
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
   const token = getToken();
 
   if (!token) {
     throw new Error("Not authenticated");
   }
 
-  const response = await fetch(`${apiBaseUrl}/api/v1/organizer/trips/${tripId}`, {
+  const response = await fetch(buildApiUrl(`/api/v1/organizer/trips/${tripId}`), {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -320,15 +303,13 @@ export async function updateTrip(
   tripId: string,
   tripData: CreateTripRequest
 ): Promise<OrganizerTrip> {
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
   const token = getToken();
 
   if (!token) {
     throw new Error("Not authenticated");
   }
 
-  const response = await fetch(`${apiBaseUrl}/api/v1/organizer/trips/${tripId}`, {
+  const response = await fetch(buildApiUrl(`/api/v1/organizer/trips/${tripId}`), {
     method: "PUT",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -381,15 +362,13 @@ export interface OrganizerBooking {
 export async function getOrganizerBookings(
   status?: string
 ): Promise<OrganizerBooking[]> {
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
   const token = getToken();
 
   if (!token) {
     throw new Error("Not authenticated");
   }
 
-  const url = new URL(`${apiBaseUrl}/api/v1/organizer/bookings`);
+  const url = new URL(buildApiUrl("/api/v1/organizer/bookings"));
   // Only send status param if it's provided and not empty (not "All")
   if (status && status.trim() !== "") {
     url.searchParams.append("status", status);
@@ -420,8 +399,6 @@ export async function getOrganizerBookings(
 export async function approveBooking(
   bookingId: string
 ): Promise<OrganizerBooking> {
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
   const token = getToken();
 
   if (!token) {
@@ -429,7 +406,7 @@ export async function approveBooking(
   }
 
   const response = await fetch(
-    `${apiBaseUrl}/api/v1/organizer/bookings/${bookingId}/approve`,
+    buildApiUrl(`/api/v1/organizer/bookings/${bookingId}/approve`),
     {
       method: "POST",
       headers: {
@@ -455,8 +432,6 @@ export async function approveBooking(
 export async function rejectBooking(
   bookingId: string
 ): Promise<OrganizerBooking> {
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
   const token = getToken();
 
   if (!token) {
@@ -464,7 +439,7 @@ export async function rejectBooking(
   }
 
   const response = await fetch(
-    `${apiBaseUrl}/api/v1/organizer/bookings/${bookingId}/reject`,
+    buildApiUrl(`/api/v1/organizer/bookings/${bookingId}/reject`),
     {
       method: "POST",
       headers: {

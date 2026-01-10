@@ -14,6 +14,13 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+# Import settings to get DATABASE_URL from environment configuration
+from app.core.config import settings
+
+# Override sqlalchemy.url from environment configuration
+# This allows Alembic to use the same DATABASE_URL as the application
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel

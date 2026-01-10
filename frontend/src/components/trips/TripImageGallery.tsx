@@ -2,18 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { getTripImages, TripImage } from "@/src/lib/api/trip-images";
-
-const apiBaseUrl =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
-
-function getImageUrl(imageUrl: string): string {
-  // If URL is already absolute, return as is
-  if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
-    return imageUrl;
-  }
-  // If URL is relative, prepend API base URL
-  return `${apiBaseUrl}${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`;
-}
+import { getImageUrl } from "@/src/lib/api/config";
 
 interface TripImageGalleryProps {
   tripId: string;

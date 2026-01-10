@@ -1,14 +1,9 @@
 import Link from "next/link";
-
-const apiBaseUrl =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+import { getImageUrl as getImageUrlHelper } from "@/src/lib/api/config";
 
 function getImageUrl(imageUrl: string | undefined): string | undefined {
   if (!imageUrl) return undefined;
-  if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
-    return imageUrl;
-  }
-  return `${apiBaseUrl}${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`;
+  return getImageUrlHelper(imageUrl);
 }
 
 interface SearchTripCardProps {

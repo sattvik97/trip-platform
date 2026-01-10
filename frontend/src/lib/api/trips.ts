@@ -1,4 +1,5 @@
 import type { Trip } from "@/src/types/trip";
+import { buildApiUrl } from "./config";
 
 export interface GetTripsParams {
   page?: number;
@@ -29,7 +30,6 @@ export interface SearchTripsParams {
 export async function getTrips(
   params: GetTripsParams = {}
 ): Promise<Trip[]> {
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
   const {
     page = 1,
     limit = 20,
@@ -42,7 +42,7 @@ export async function getTrips(
 
   const offset = (page - 1) * limit;
 
-  const url = new URL(`${apiBaseUrl}/api/v1/trips`);
+  const url = new URL(buildApiUrl("/api/v1/trips"));
   url.searchParams.set("limit", limit.toString());
   url.searchParams.set("offset", offset.toString());
 
@@ -84,10 +84,8 @@ export async function getTrips(
 export async function getTripBySlug(
   tripSlug: string
 ): Promise<Trip | null> {
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
-
   try {
-    const response = await fetch(`${apiBaseUrl}/api/v1/trips/${tripSlug}`, {
+    const response = await fetch(buildApiUrl(`/api/v1/trips/${tripSlug}`), {
       cache: "no-store",
     });
 
@@ -107,10 +105,8 @@ export async function getTripBySlug(
 }
 
 export async function getWeekendGetaways(): Promise<Trip[]> {
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
-
   try {
-    const response = await fetch(`${apiBaseUrl}/api/v1/trips/weekend-getaways`, {
+    const response = await fetch(buildApiUrl("/api/v1/trips/weekend-getaways"), {
       cache: "no-store",
     });
 
@@ -128,7 +124,6 @@ export async function getWeekendGetaways(): Promise<Trip[]> {
 export async function searchTrips(
   params: SearchTripsParams = {}
 ): Promise<Trip[]> {
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
   const {
     page = 1,
     limit = 20,
@@ -147,7 +142,7 @@ export async function searchTrips(
 
   const offset = (page - 1) * limit;
 
-  const url = new URL(`${apiBaseUrl}/api/v1/trips/search`);
+  const url = new URL(buildApiUrl("/api/v1/trips/search"));
   url.searchParams.set("limit", limit.toString());
   url.searchParams.set("offset", offset.toString());
 
@@ -229,7 +224,6 @@ export async function createBookingRequest(
   tripId: string,
   request: BookingRequest
 ): Promise<BookingResponse> {
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
   const token = typeof window !== "undefined" ? localStorage.getItem("user_token") : null;
 
   if (!token) {
@@ -237,7 +231,7 @@ export async function createBookingRequest(
   }
 
   try {
-    const response = await fetch(`${apiBaseUrl}/api/v1/trips/${tripId}/bookings`, {
+    const response = await fetch(buildApiUrl(`/api/v1/trips/${tripId}/bookings`), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

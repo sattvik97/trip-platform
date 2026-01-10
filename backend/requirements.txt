@@ -11,6 +11,7 @@ email-validator
 pyjwt
 python-multipart
 aiofiles
+azure-storage-blob
 
 # Password hashing (PINNED to avoid bcrypt runtime crash)
 passlib==1.7.4

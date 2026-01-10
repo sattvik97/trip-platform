@@ -4,6 +4,10 @@
 .env
 .env.*
 *.env
+# Allow example files for reference
+!.env*.example
+!.example
+!.local
 
 ####################################
 # Python
