@@ -1,4 +1,8 @@
-name: Build and deploy Next.js SSR app to Azure Web App - trip-frontend-prod
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+# More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
+
+name: Build and deploy Python app to Azure Web App - trip-backend-prod
 
 on:
   push:
@@ -11,28 +15,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repositorya
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          node-version: '20'
+          python-version: '3.11'
 
-      - name: Install & build frontend
-        working-directory: frontend
+      - name: Install dependencies
+        working-directory: backend
         run: |
-          npm install
-          npm run build
+          python -m venv antenv
+          source antenv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
 
-      - name: Zip frontend app
-        working-directory: frontend
+      - name: Zip backend for deployment
+        working-directory: backend
         run: |
-          zip -r ../frontend.zip .
+          zip -r ../backend.zip .
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
-          app-name: trip-frontend-prod
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_FRONTEND }}
-          package: frontend.zip
+          app-name: trip-backend-prod
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: backend.zip
