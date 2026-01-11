@@ -26,13 +26,13 @@ jobs:
       - name: Install & build frontend
         working-directory: frontend
         run: |
-          npm install
+          npm ci --production=false
           npm run build
 
       - name: Zip frontend app
         working-directory: frontend
         run: |
-          zip -r ../frontend.zip .
+          zip -r ../frontend.zip .next public package.json node_modules
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
