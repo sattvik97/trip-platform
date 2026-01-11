@@ -47,10 +47,24 @@ class Settings(BaseSettings):
     
     @property
     def cors_origins_list(self) -> List[str]:
-        """Parse CORS_ORIGINS string into a list."""
+        """
+        Parse CORS_ORIGINS string into a list.
+        Normalizes origins by:
+        - Stripping whitespace
+        - Removing trailing slashes (CORS requires exact match)
+        - Filtering empty strings
+        """
         if not self.CORS_ORIGINS:
             return []
-        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+        origins = []
+        for origin in self.CORS_ORIGINS.split(","):
+            origin = origin.strip()
+            if origin:
+                # Remove trailing slash - CORS origin matching is exact and trailing slashes cause mismatches
+                origin = origin.rstrip("/")
+                if origin not in origins:  # Avoid duplicates
+                    origins.append(origin)
+        return origins
     
     @property
     def is_local(self) -> bool:

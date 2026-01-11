@@ -23,6 +23,21 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Trip Discovery API")
 
+# CRITICAL: Add CORS middleware FIRST (before any routes or mounts)
+# This ensures CORS headers are added to all responses, including OPTIONS preflight
+# FastAPI middleware executes in reverse order (last added = first executed),
+# so adding CORS first makes it the outermost middleware
+cors_origins = settings.cors_origins_list
+logger.info(f"CORS origins configured: {cors_origins}")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+)
+
 # Startup safety logs
 @app.on_event("startup")
 async def startup_event():
@@ -46,6 +61,10 @@ async def startup_event():
         logger.info(f"Storage: Azure Blob Storage (container: {settings.BLOB_CONTAINER})")
     else:
         logger.info(f"Storage: Local filesystem (directory: {settings.LOCAL_UPLOAD_DIR})")
+    
+    # Log CORS configuration for debugging
+    logger.info(f"CORS origins: {cors_origins}")
+    logger.info(f"CORS origins count: {len(cors_origins)}")
 
 # Mount static files for media (only for local environment)
 # In test/prod, images are served from Azure Blob Storage, not local filesystem
@@ -54,15 +73,6 @@ if settings.uses_local_storage:
     media_dir = backend_dir / settings.LOCAL_UPLOAD_DIR
     media_dir.mkdir(exist_ok=True, parents=True)
     app.mount("/media", StaticFiles(directory=str(media_dir)), name="media")
-
-# Add CORS middleware with config-driven origins
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 @app.get("/health")
 def health():
