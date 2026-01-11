@@ -55,7 +55,7 @@ async function TripsContent({
     <>
       <TripsGrid trips={trips} maxItems={variant === "secondary" ? 4 : undefined} />
       {variant === "primary" && (
-        <PaginationControls currentPage={validPage} hasMore={hasMore} />
+        <PaginationControls currentPage={validPage} hasMore={hasMore} totalTrips={trips.length} limit={limit} basePath={"/trips"} />
       )}
     </>
   );

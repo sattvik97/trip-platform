@@ -16,7 +16,7 @@ interface AuthState {
 }
 
 interface AuthContextType extends AuthState {
-  login: (token: string, userInfo: UserInfo, role: "user" | "organizer") => void;
+  login: (token: string, email: string, role: "user" | "organizer") => void;
   logout: () => void;
 }
 

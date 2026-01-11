@@ -5,7 +5,8 @@ import { useRouter, useParams } from "next/navigation";
 import { notFound } from "next/navigation";
 import { Header } from "@/src/components/layout/Header";
 import { Footer } from "@/src/components/layout/Footer";
-import { getTripBySlug, createBookingRequest, Trip } from "@/src/lib/api/trips";
+import { getTripBySlug, createBookingRequest } from "@/src/lib/api/trips";
+import type { Trip } from "@/src/types/trip";
 import { useAuth } from "@/src/contexts/AuthContext";
 
 interface TravelerDetail {
@@ -169,7 +170,6 @@ export default function BookingPage() {
   if (!isAuthenticated) {
     return null;
   }
-
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col">

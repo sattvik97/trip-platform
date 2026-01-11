@@ -1,18 +1,29 @@
 "use client";
 
-import { useState, FormEvent, useEffect } from "react";
+import { Suspense, useEffect, useState, FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+
 import { loginOrganizer } from "@/src/lib/api/organizer";
 import { login } from "@/src/lib/auth";
 import { useAuth } from "@/src/contexts/AuthContext";
 import { AuthHeader } from "@/src/components/auth/AuthHeader";
 import { AuthBanner } from "@/src/components/auth/AuthBanner";
 
-export default function OrganizerLoginPage() {
+/**
+ * Explicitly mark this page as runtime-only
+ */
+export const dynamic = "force-dynamic";
+
+/**
+ * Inner component – SAFE place to use useSearchParams()
+ * because it is wrapped in <Suspense />
+ */
+function OrganizerLoginInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login: authLogin } = useAuth();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -45,8 +56,10 @@ export default function OrganizerLoginPage() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <AuthHeader />
+
       <div className="flex-grow flex">
         <AuthBanner role="organizer" mode="login" />
+
         <div className="flex-1 flex items-center justify-center px-4 py-12">
           <div className="w-full max-w-md">
             <div className="mb-8">
@@ -54,7 +67,7 @@ export default function OrganizerLoginPage() {
                 Sign in to your organizer account
               </h2>
               <p className="text-gray-600">
-                Don't have an account?{" "}
+                Don&apos;t have an account?{" "}
                 <Link
                   href="/organizer/register"
                   className="font-medium text-indigo-600 hover:text-indigo-500"
@@ -86,12 +99,9 @@ export default function OrganizerLoginPage() {
                 </label>
                 <input
                   id="email"
-                  name="email"
                   type="email"
-                  autoComplete="email"
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  placeholder="you@example.com"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
@@ -106,30 +116,36 @@ export default function OrganizerLoginPage() {
                 </label>
                 <input
                   id="password"
-                  name="password"
                   type="password"
-                  autoComplete="current-password"
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  placeholder="Enter your password"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
 
-              <div>
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {isLoading ? "Signing in..." : "Sign in"}
-                </button>
-              </div>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-3 px-4 rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
+              >
+                {isLoading ? "Signing in..." : "Sign in"}
+              </button>
             </form>
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Page wrapper with Suspense (REQUIRED)
+ */
+export default function OrganizerLoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <OrganizerLoginInner />
+    </Suspense>
   );
 }

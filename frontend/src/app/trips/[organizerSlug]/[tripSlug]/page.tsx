@@ -159,6 +159,7 @@ export default async function TripDetailPage({
               <div className="lg:sticky lg:top-24">
                 <BookingCard
                   tripId={trip.id}
+                  tripSlug={trip.slug}  
                   price={trip.price}
                   dateRange={dateRange}
                   duration={duration}

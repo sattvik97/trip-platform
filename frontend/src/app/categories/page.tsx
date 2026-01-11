@@ -5,6 +5,8 @@ import { HomeTripCard } from "@/src/components/home/HomeTripCard";
 import { HOMEPAGE_CATEGORIES, getCategoryViewAllUrl } from "@/src/config/categories";
 import { fetchCategoryTrips } from "@/src/lib/categories";
 
+export const dynamic = "force-dynamic";
+
 function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleDateString("en-US", {
     year: "numeric",

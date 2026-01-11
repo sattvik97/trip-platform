@@ -1,18 +1,26 @@
 "use client";
 
-import { useState, FormEvent, useEffect } from "react";
+import { Suspense, useEffect, useState, FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+
 import { loginUser as loginUserAPI } from "@/src/lib/api/user";
 import { loginUser } from "@/src/lib/userAuth";
 import { useAuth } from "@/src/contexts/AuthContext";
 import { AuthHeader } from "@/src/components/auth/AuthHeader";
 import { AuthBanner } from "@/src/components/auth/AuthBanner";
 
-export default function LoginPage() {
+export const dynamic = "force-dynamic";
+
+/**
+ * Inner component that is allowed to use useSearchParams()
+ * because it is wrapped in <Suspense />
+ */
+function LoginInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login: authLogin } = useAuth();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -45,8 +53,10 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <AuthHeader />
+
       <div className="flex-grow flex">
         <AuthBanner role="user" mode="login" />
+
         <div className="flex-1 flex items-center justify-center px-4 py-12">
           <div className="w-full max-w-md">
             <div className="mb-8">
@@ -54,7 +64,7 @@ export default function LoginPage() {
                 Sign in to your account
               </h2>
               <p className="text-gray-600">
-                Don't have an account?{" "}
+                Don&apos;t have an account?{" "}
                 <Link
                   href="/register"
                   className="font-medium text-indigo-600 hover:text-indigo-500"
@@ -134,3 +144,13 @@ export default function LoginPage() {
   );
 }
 
+/**
+ * Page component – explicitly dynamic and Suspense-wrapped
+ */
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginInner />
+    </Suspense>
+  );
+}
