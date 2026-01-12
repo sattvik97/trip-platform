@@ -9,7 +9,7 @@ from app.crud.organizer import create_organizer, list_organizers
 router = APIRouter()
 
 @router.post(
-    "/",
+    "",
     response_model=OrganizerResponse,
     status_code=status.HTTP_201_CREATED,
 )
@@ -26,7 +26,7 @@ def create_organizer_api(
         )
 
 @router.get(
-    "/",
+    "",
     response_model=List[OrganizerResponse],
 )
 def list_organizers_api(db: Session = Depends(get_db)):

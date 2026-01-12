@@ -14,7 +14,7 @@ router = APIRouter()
 
 
 @router.get(
-    "/",
+    "",
     response_model=List[BookingResponse],
 )
 def list_user_bookings(

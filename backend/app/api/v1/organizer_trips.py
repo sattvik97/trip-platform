@@ -16,7 +16,7 @@ router = APIRouter()
 
 
 @router.post(
-    "/",
+    "",
     response_model=OrganizerTripResponse,
     status_code=status.HTTP_201_CREATED,
 )
@@ -61,7 +61,7 @@ def create_organizer_trip_api(
 
 
 @router.get(
-    "/",
+    "",
     response_model=List[OrganizerTripResponse],
 )
 def list_organizer_trips_api(

@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from pathlib import Path
 import logging
+from urllib.parse import urlparse, urlunparse
 from app.core.config import settings
 from app.api.v1.trips import router as trips_router
 from app.api.v1.organizers import router as organizers_router
@@ -22,7 +23,59 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Trip Discovery API")
+# Disable automatic trailing slash redirects globally
+# This prevents 307 redirects that can cause HTTPS → HTTP downgrade issues
+# in production environments behind reverse proxies (Azure App Service/Gunicorn)
+app = FastAPI(title="Trip Discovery API", redirect_slashes=False)
+
+# HTTPS Redirect Middleware
+# Ensures all redirect Location headers use HTTPS in production.
+# This is critical when behind reverse proxies (Azure App Service/Gunicorn)
+# that may generate redirects with http:// instead of https://
+class HTTPSRedirectMiddleware(BaseHTTPMiddleware):
+    """
+    Ensures all redirect Location headers use HTTPS in production.
+    
+    Why this is needed:
+    - Azure App Service/Gunicorn may generate redirects with http://
+    - Browsers block HTTPS → HTTP downgrades for cross-origin requests with Authorization headers
+    - This middleware intercepts redirects and ensures Location headers use https://
+    
+    How it works:
+    - Checks if response is a redirect (3xx status)
+    - Extracts Location header
+    - If Location uses http://, converts to https://
+    - Preserves all other headers and response properties
+    """
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        
+        # Only process redirects (3xx status codes)
+        if 300 <= response.status_code < 400:
+            location = response.headers.get("Location")
+            if location:
+                # Parse the URL
+                parsed = urlparse(location)
+                
+                # If scheme is http, convert to https
+                # Only do this in production/test environments (not local)
+                if parsed.scheme == "http" and settings.ENV in ("prod", "test"):
+                    # Reconstruct URL with https
+                    new_parsed = parsed._replace(scheme="https")
+                    new_location = urlunparse(new_parsed)
+                    
+                    # Create new response with corrected Location header
+                    # Preserve all other headers and status code
+                    # For redirects, body is typically empty, so we don't need to preserve it
+                    headers = dict(response.headers)
+                    headers["Location"] = new_location
+                    
+                    return Response(
+                        status_code=response.status_code,
+                        headers=headers,
+                    )
+        
+        return response
 
 # OPTIONS preflight handler middleware
 # This MUST be added FIRST so it executes LAST (innermost).
@@ -30,16 +83,18 @@ app = FastAPI(title="Trip Discovery API")
 #
 # Execution order:
 #   1. OptionsHandler (innermost, executes last) - short-circuits OPTIONS
-#   2. CORS (outermost, executes first) - sets CORS headers on all responses
-#   3. Routes (app level)
+#   2. HTTPSRedirect (middle) - fixes Location headers
+#   3. CORS (outermost, executes first) - sets CORS headers on all responses
+#   4. Routes (app level)
 #
 # Flow for OPTIONS request:
 #   Request → CORS (processes, prepares to add headers) 
+#          → HTTPSRedirect (passes through)
 #          → OptionsHandler (detects OPTIONS, returns 200)
-#          → Response passes back through CORS (headers added) → Client
+#          → Response passes back through HTTPSRedirect → CORS (headers added) → Client
 #
 # Flow for regular request:
-#   Request → CORS → OptionsHandler (passes through) → Routes → Response → CORS → Client
+#   Request → CORS → HTTPSRedirect → OptionsHandler (passes through) → Routes → Response → HTTPSRedirect → CORS → Client
 class OptionsHandlerMiddleware(BaseHTTPMiddleware):
     """
     Handles OPTIONS preflight requests by returning 200 immediately.
@@ -61,14 +116,21 @@ class OptionsHandlerMiddleware(BaseHTTPMiddleware):
             return Response(status_code=200)
         return await call_next(request)
 
+# Add middleware in reverse order (last added = first executed)
+# Execution order: CORS → HTTPSRedirect → OptionsHandler → Routes
+
 # Add OptionsHandler FIRST so it executes LAST (innermost)
-# This allows CORS to process the request/response and add headers
+# This allows CORS and HTTPSRedirect to process the request/response
 app.add_middleware(OptionsHandlerMiddleware)
 
-# CRITICAL: Add CORS middleware AFTER OptionsHandler (so it executes BEFORE OptionsHandler).
+# Add HTTPSRedirect AFTER OptionsHandler (so it executes BEFORE OptionsHandler)
+# This ensures redirect Location headers are fixed before CORS processes them
+app.add_middleware(HTTPSRedirectMiddleware)
+
+# CRITICAL: Add CORS middleware LAST (so it executes FIRST, outermost).
 # This ensures CORS headers are added to all responses, including OPTIONS preflight.
 # FastAPI middleware executes in reverse order (last added = first executed),
-# so adding CORS after OptionsHandler makes it the outermost middleware
+# so adding CORS last makes it the outermost middleware
 cors_origins = settings.cors_origins_list
 logger.info(f"CORS origins configured: {cors_origins}")
 app.add_middleware(

@@ -30,7 +30,7 @@ from app.crud.trip_image import get_trip_images
 router = APIRouter()
 
 @router.post(
-    "/",
+    "",
     response_model=TripResponse,
     status_code=status.HTTP_201_CREATED,
 )
@@ -44,7 +44,7 @@ def create_trip_api(trip: TripCreate, db: Session = Depends(get_db)):
         )
 
 
-@router.get("/", response_model=List[TripResponse])
+@router.get("", response_model=List[TripResponse])
 def list_trips_api(
     db: Session = Depends(get_db),
     destination: Optional[str] = Query(None),
