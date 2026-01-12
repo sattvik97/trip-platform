@@ -24,6 +24,7 @@ export function TripHeroImage({
   const [images, setImages] = useState<TripImage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [heroImage, setHeroImage] = useState<TripImage | null>(null);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     const loadImages = async () => {
@@ -55,11 +56,12 @@ export function TripHeroImage({
   return (
     <div className="relative w-full h-[45vh] md:h-[60vh] overflow-hidden">
       {/* Hero Image or Gradient Fallback */}
-      {heroImage ? (
+      {heroImage && !imageError ? (
         <img
           src={getImageUrl(heroImage.image_url)}
           alt={title}
           className="w-full h-full object-cover"
+          onError={() => setImageError(true)}
         />
       ) : (
         <div className="w-full h-full bg-gradient-to-br from-purple-400 to-blue-500"></div>

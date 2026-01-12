@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useState } from "react";
 import { getImageUrl as getImageUrlHelper } from "@/src/lib/api/config";
 
 function getImageUrl(imageUrl: string | undefined): string | undefined {
@@ -23,6 +24,7 @@ interface SearchTripCardProps {
 }
 
 export function SearchTripCard({ trip }: SearchTripCardProps) {
+  const [imageError, setImageError] = useState(false);
   const imageUrl = getImageUrl(trip.cover_image_url || undefined);
   
   // Calculate duration
@@ -51,11 +53,12 @@ export function SearchTripCard({ trip }: SearchTripCardProps) {
     >
       {/* Hero Image */}
       <div className="relative h-56 bg-gradient-to-br from-blue-400 to-purple-500 overflow-hidden">
-        {imageUrl ? (
+        {imageUrl && !imageError ? (
           <img
             src={imageUrl}
             alt={trip.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            onError={() => setImageError(true)}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-white text-5xl font-bold opacity-80">

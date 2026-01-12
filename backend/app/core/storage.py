@@ -4,10 +4,13 @@ Supports local filesystem storage and Azure Blob Storage.
 """
 import os
 import uuid
+import logging
 from pathlib import Path
 from typing import Optional
 from fastapi import UploadFile
 import aiofiles
+
+logger = logging.getLogger(__name__)
 
 
 class StorageBackend:
@@ -132,6 +135,7 @@ class AzureBlobStorageBackend(StorageBackend):
         
         self.connection_string = connection_string
         self.container_name = container_name
+        self.AzureError = AzureError  # Store for use in other methods
         
         if not connection_string:
             raise ValueError("BLOB_CONNECTION_STRING is required for Azure storage")
@@ -142,8 +146,10 @@ class AzureBlobStorageBackend(StorageBackend):
             # Ensure container exists
             if not self.container_client.exists():
                 self.container_client.create_container()
-        except Exception as e:
+        except AzureError as e:
             raise ValueError(f"Failed to initialize Azure Blob Storage: {str(e)}")
+        except Exception as e:
+            raise ValueError(f"Unexpected error initializing Azure Blob Storage: {str(e)}")
     
     def _get_blob_name(self, trip_id: str, filename: str) -> str:
         """Generate blob name for an image."""
@@ -159,6 +165,8 @@ class AzureBlobStorageBackend(StorageBackend):
         """
         Save a file to Azure Blob Storage and return the public URL.
         """
+        from azure.storage.blob import ContentSettings
+        
         # Generate unique filename
         file_ext = os.path.splitext(file.filename)[1] if file.filename else ".jpg"
         filename = f"{uuid.uuid4()}{file_ext}"
@@ -182,14 +190,22 @@ class AzureBlobStorageBackend(StorageBackend):
         }
         content_type = content_type_map.get(file_ext.lower(), "application/octet-stream")
         
+        # Create ContentSettings with content_type and cache_control
+        content_settings = ContentSettings(
+            content_type=content_type,
+            cache_control="public, max-age=31536000"
+        )
+        
         try:
             blob_client.upload_blob(
                 file_content,
                 overwrite=True,
-                content_settings={"content_type": content_type}
+                content_settings=content_settings
             )
-        except Exception as e:
+        except self.AzureError as e:
             raise ValueError(f"Failed to upload file to Azure Blob Storage: {str(e)}")
+        except Exception as e:
+            raise ValueError(f"Unexpected error uploading file to Azure Blob Storage: {str(e)}")
         
         return self._get_public_url(blob_name)
     
@@ -218,9 +234,12 @@ class AzureBlobStorageBackend(StorageBackend):
             
             if blob_client.exists():
                 blob_client.delete_blob()
-        except Exception as e:
+        except self.AzureError as e:
             # Log error but don't raise - file deletion is not critical
-            print(f"Warning: Failed to delete blob from Azure: {str(e)}")
+            logger.warning(f"Failed to delete blob from Azure: {str(e)}")
+        except Exception as e:
+            # Log unexpected errors
+            logger.warning(f"Unexpected error deleting blob from Azure: {str(e)}")
     
     def delete_directory(self, trip_id: str) -> None:
         """
@@ -236,9 +255,12 @@ class AzureBlobStorageBackend(StorageBackend):
                 )
                 if blob_client.exists():
                     blob_client.delete_blob()
-        except Exception as e:
+        except self.AzureError as e:
             # Log error but don't raise - directory deletion is not critical
-            print(f"Warning: Failed to delete blobs from Azure: {str(e)}")
+            logger.warning(f"Failed to delete blobs from Azure: {str(e)}")
+        except Exception as e:
+            # Log unexpected errors
+            logger.warning(f"Unexpected error deleting blobs from Azure: {str(e)}")
 
 
 # Global storage instance

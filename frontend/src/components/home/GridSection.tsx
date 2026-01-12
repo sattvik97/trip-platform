@@ -49,6 +49,7 @@ export function GridSection({ title, trips, columns = 3, viewAllHref = "/trips" 
                   location={trip.destination}
                   date={formatDate(trip.start_date)}
                   seatsAvailable={trip.available_seats}
+                  imageUrl={trip.cover_image_url || undefined}
                   organizerId={trip.organizer_id}
                   tripSlug={trip.slug}
                 />

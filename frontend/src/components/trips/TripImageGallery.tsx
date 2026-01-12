@@ -12,6 +12,7 @@ export function TripImageGallery({ tripId }: TripImageGalleryProps) {
   const [images, setImages] = useState<TripImage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState<TripImage | null>(null);
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const loadImages = async () => {
@@ -44,20 +45,42 @@ export function TripImageGallery({ tripId }: TripImageGalleryProps) {
           Gallery
         </h2>
         <div className="flex gap-3 overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
-          {images.map((image) => (
-            <button
-              key={image.id}
-              onClick={() => setSelectedImage(image)}
-              className="flex-shrink-0 w-32 h-32 md:w-40 md:h-40 rounded-lg overflow-hidden border-2 border-gray-200 hover:border-indigo-500 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-            >
-              <img
-                src={getImageUrl(image.image_url)}
-                alt={`Gallery image ${image.position}`}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-            </button>
-          ))}
+          {images.map((image) => {
+            const hasError = imageErrors.has(image.id);
+            return (
+              <button
+                key={image.id}
+                onClick={() => !hasError && setSelectedImage(image)}
+                className="flex-shrink-0 w-32 h-32 md:w-40 md:h-40 rounded-lg overflow-hidden border-2 border-gray-200 hover:border-indigo-500 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              >
+                {hasError ? (
+                  <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-400">
+                    <svg
+                      className="w-8 h-8"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                  </div>
+                ) : (
+                  <img
+                    src={getImageUrl(image.image_url)}
+                    alt={`Gallery image ${image.position}`}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    onError={() => setImageErrors((prev) => new Set(prev).add(image.id))}
+                  />
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -88,12 +111,19 @@ export function TripImageGallery({ tripId }: TripImageGalleryProps) {
           </button>
 
           <div className="max-w-7xl max-h-full">
-            <img
-              src={getImageUrl(selectedImage.image_url)}
-              alt="Full size image"
-              className="max-w-full max-h-[90vh] object-contain"
-              onClick={(e) => e.stopPropagation()}
-            />
+            {imageErrors.has(selectedImage.id) ? (
+              <div className="flex items-center justify-center bg-gray-800 text-white p-8 rounded">
+                <p>Image failed to load</p>
+              </div>
+            ) : (
+              <img
+                src={getImageUrl(selectedImage.image_url)}
+                alt="Full size image"
+                className="max-w-full max-h-[90vh] object-contain"
+                onClick={(e) => e.stopPropagation()}
+                onError={() => setImageErrors((prev) => new Set(prev).add(selectedImage.id))}
+              />
+            )}
           </div>
 
           {/* Navigation */}

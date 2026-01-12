@@ -13,6 +13,7 @@ export function TripImageCarousel({ tripId }: TripImageCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const loadImages = async () => {
@@ -59,12 +60,21 @@ export function TripImageCarousel({ tripId }: TripImageCarouselProps) {
     <div className="relative w-full mb-8">
       {/* Main Image */}
       <div className="relative w-full h-96 md:h-[500px] rounded-lg overflow-hidden bg-gray-100">
-        <img
-          src={getImageUrl(images[currentIndex].image_url)}
-          alt={`Trip image ${currentIndex + 1}`}
-          className="w-full h-full object-cover"
-          loading="lazy"
-        />
+        {imageErrors.has(images[currentIndex].id) ? (
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-400 to-purple-500">
+            <div className="text-white text-2xl font-bold opacity-80">
+              Image unavailable
+            </div>
+          </div>
+        ) : (
+          <img
+            src={getImageUrl(images[currentIndex].image_url)}
+            alt={`Trip image ${currentIndex + 1}`}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            onError={() => setImageErrors((prev) => new Set(prev).add(images[currentIndex].id))}
+          />
+        )}
 
         {/* Navigation Arrows */}
         {images.length > 1 && (
@@ -121,24 +131,46 @@ export function TripImageCarousel({ tripId }: TripImageCarouselProps) {
       {/* Thumbnail Strip */}
       {images.length > 1 && (
         <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
-          {images.map((image, index) => (
-            <button
-              key={image.id}
-              onClick={() => goToSlide(index)}
-              className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
-                index === currentIndex
-                  ? "border-indigo-600 ring-2 ring-indigo-200"
-                  : "border-gray-200 hover:border-gray-300"
-              }`}
-            >
-              <img
-                src={getImageUrl(image.image_url)}
-                alt={`Thumbnail ${index + 1}`}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-            </button>
-          ))}
+          {images.map((image, index) => {
+            const hasError = imageErrors.has(image.id);
+            return (
+              <button
+                key={image.id}
+                onClick={() => goToSlide(index)}
+                className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                  index === currentIndex
+                    ? "border-indigo-600 ring-2 ring-indigo-200"
+                    : "border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                {hasError ? (
+                  <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-400">
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                  </div>
+                ) : (
+                  <img
+                    src={getImageUrl(image.image_url)}
+                    alt={`Thumbnail ${index + 1}`}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    onError={() => setImageErrors((prev) => new Set(prev).add(image.id))}
+                  />
+                )}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

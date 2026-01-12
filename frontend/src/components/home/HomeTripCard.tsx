@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import { getImageUrl as getImageUrlHelper } from "@/src/lib/api/config";
 
 function getImageUrl(imageUrl: string | undefined): string | undefined {
@@ -29,6 +32,9 @@ export function HomeTripCard({
   organizerId,
   tripSlug,
 }: HomeTripCardProps) {
+  const [imageError, setImageError] = useState(false);
+  const imageSrc = imageUrl ? getImageUrl(imageUrl) : undefined;
+
   return (
     <Link
       href={`/trip/${tripSlug}`}
@@ -36,11 +42,12 @@ export function HomeTripCard({
     >
       {/* Image */}
       <div className="relative h-48 bg-gradient-to-br from-blue-400 to-purple-500">
-        {imageUrl ? (
+        {imageSrc && !imageError ? (
           <img
-            src={getImageUrl(imageUrl)}
+            src={imageSrc}
             alt={title}
             className="w-full h-full object-cover"
+            onError={() => setImageError(true)}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-white text-4xl font-bold opacity-80">
