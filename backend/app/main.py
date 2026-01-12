@@ -1,6 +1,7 @@
-﻿from fastapi import FastAPI
+﻿from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
 from pathlib import Path
 import logging
 from app.core.config import settings
@@ -23,10 +24,51 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Trip Discovery API")
 
-# CRITICAL: Add CORS middleware FIRST (before any routes or mounts)
-# This ensures CORS headers are added to all responses, including OPTIONS preflight
+# OPTIONS preflight handler middleware
+# This MUST be added FIRST so it executes LAST (innermost).
+# FastAPI middleware executes in reverse order (last added = first executed).
+#
+# Execution order:
+#   1. OptionsHandler (innermost, executes last) - short-circuits OPTIONS
+#   2. CORS (outermost, executes first) - sets CORS headers on all responses
+#   3. Routes (app level)
+#
+# Flow for OPTIONS request:
+#   Request → CORS (processes, prepares to add headers) 
+#          → OptionsHandler (detects OPTIONS, returns 200)
+#          → Response passes back through CORS (headers added) → Client
+#
+# Flow for regular request:
+#   Request → CORS → OptionsHandler (passes through) → Routes → Response → CORS → Client
+class OptionsHandlerMiddleware(BaseHTTPMiddleware):
+    """
+    Handles OPTIONS preflight requests by returning 200 immediately.
+    
+    FastAPI validates request bodies for all HTTP methods, including OPTIONS.
+    Since OPTIONS preflight requests have no body, Pydantic validation fails
+    and returns 400. This middleware intercepts OPTIONS requests and returns
+    a 200 response before FastAPI processes the route.
+    
+    Why this works locally but fails in production:
+    - Locally: Frontend uses proxy/same-origin, so browser never sends OPTIONS preflight
+    - Production: Different origins trigger preflight, which hits this validation issue
+    """
+    async def dispatch(self, request: Request, call_next):
+        if request.method == "OPTIONS":
+            # Return 200 immediately for OPTIONS preflight
+            # Response will pass back through CORS middleware (executed before this)
+            # which will add the necessary CORS headers
+            return Response(status_code=200)
+        return await call_next(request)
+
+# Add OptionsHandler FIRST so it executes LAST (innermost)
+# This allows CORS to process the request/response and add headers
+app.add_middleware(OptionsHandlerMiddleware)
+
+# CRITICAL: Add CORS middleware AFTER OptionsHandler (so it executes BEFORE OptionsHandler).
+# This ensures CORS headers are added to all responses, including OPTIONS preflight.
 # FastAPI middleware executes in reverse order (last added = first executed),
-# so adding CORS first makes it the outermost middleware
+# so adding CORS after OptionsHandler makes it the outermost middleware
 cors_origins = settings.cors_origins_list
 logger.info(f"CORS origins configured: {cors_origins}")
 app.add_middleware(
