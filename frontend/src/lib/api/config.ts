@@ -3,6 +3,10 @@
  * 
  * Reads API base URL from environment variable NEXT_PUBLIC_API_BASE_URL.
  * 
+ * ⚠️ IMPORTANT: This code does NOT use the ENV variable.
+ * The ENV variable is only for the backend. For the frontend, you MUST set:
+ * NEXT_PUBLIC_API_BASE_URL (not ENV)
+ * 
  * In Next.js, environment variables prefixed with NEXT_PUBLIC_ are
  * available in the browser and must be set at build time.
  * 
@@ -10,6 +14,8 @@
  * - local: NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
  * - test: NEXT_PUBLIC_API_BASE_URL=http://localhost:8000 (backend runs locally with Azure DB)
  * - production: NEXT_PUBLIC_API_BASE_URL=https://your-azure-backend.azurewebsites.net
+ * 
+ * Setting ENV=production will NOT change the API URL - you must set NEXT_PUBLIC_API_BASE_URL.
  */
 const getApiBaseUrl = (): string => {
   // Check for Next.js environment variable
