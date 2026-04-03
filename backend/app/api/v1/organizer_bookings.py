@@ -22,7 +22,11 @@ router = APIRouter()
 def list_organizer_bookings(
     db: Session = Depends(get_db),
     organizer_id: str = Depends(require_organizer),
-    status: Optional[str] = Query(None, description="Filter by booking status (default: PENDING)"),
+    booking_status: Optional[str] = Query(
+        None,
+        alias="status",
+        description="Filter by booking status",
+    ),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
 ):
@@ -30,13 +34,19 @@ def list_organizer_bookings(
     List booking requests for trips owned by the authenticated organizer.
     If status is not provided, returns all bookings.
     """
-    bookings = list_bookings_for_organizer(
-        db,
-        organizer_id=organizer_id,
-        status=status,
-        limit=limit,
-        offset=offset,
-    )
+    try:
+        bookings = list_bookings_for_organizer(
+            db,
+            organizer_id=organizer_id,
+            status=booking_status,
+            limit=limit,
+            offset=offset,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
     
     # Enrich bookings with trip and user info
     result = []
@@ -61,6 +71,8 @@ def list_organizer_bookings(
                 source=booking.source,
                 status=booking.status,
                 created_at=booking.created_at,
+                amount_snapshot=booking.amount_snapshot,
+                expires_at=booking.expires_at,
                 trip_title=trip_title,
                 trip_destination=trip_destination,
                 user_email=user_email,
@@ -92,7 +104,7 @@ def approve_booking_request(
     Validates that:
     - The organizer owns the trip
     - There are enough seats available
-    Updates booking status to APPROVED.
+    Updates booking status to CONFIRMED.
     """
     try:
         booking = approve_booking(db, booking_id, organizer_id)
@@ -115,6 +127,8 @@ def approve_booking_request(
             source=booking.source,
             status=booking.status,
             created_at=booking.created_at,
+            amount_snapshot=booking.amount_snapshot,
+            expires_at=booking.expires_at,
             trip_title=trip_title,
             trip_destination=trip_destination,
             user_email=user_email,
@@ -151,7 +165,7 @@ def reject_booking_request(
     """
     Reject a booking request.
     Validates that the organizer owns the trip.
-    Updates booking status to REJECTED.
+    Updates booking status to CANCELLED.
     """
     try:
         booking = reject_booking(db, booking_id, organizer_id)
@@ -174,6 +188,8 @@ def reject_booking_request(
             source=booking.source,
             status=booking.status,
             created_at=booking.created_at,
+            amount_snapshot=booking.amount_snapshot,
+            expires_at=booking.expires_at,
             trip_title=trip_title,
             trip_destination=trip_destination,
             user_email=user_email,

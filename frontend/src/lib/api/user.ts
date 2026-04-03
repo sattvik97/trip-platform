@@ -78,6 +78,8 @@ export interface UserBooking {
   seats_booked: number;
   source: string;
   status: string;
+  amount_snapshot?: number | null;
+  expires_at?: string | null;
   created_at: string;
   trip_title: string | null;
   trip_destination: string | null;

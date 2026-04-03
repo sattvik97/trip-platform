@@ -1,9 +1,7 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func, or_
 from typing import List, Optional
-from app.models.booking import Booking
+from app.models.booking import Booking, BookingStatus
 from app.models.trip import Trip
-from app.models.end_user import EndUser
 
 
 def list_bookings_for_organizer(
@@ -23,9 +21,21 @@ def list_bookings_for_organizer(
         .filter(Trip.organizer_id == organizer_id)
     )
     
-    # Only filter by status if provided and not empty
+    # Only filter by status if provided and not empty.
+    # Accept legacy names for backward compatibility.
     if status:
-        query = query.filter(Booking.status == status)
+        normalized = status.strip().upper()
+        if normalized == "APPROVED":
+            status_filter = BookingStatus.CONFIRMED
+        elif normalized == "REJECTED":
+            status_filter = BookingStatus.CANCELLED
+        else:
+            try:
+                status_filter = BookingStatus(normalized)
+            except ValueError as exc:
+                raise ValueError("Invalid booking status filter") from exc
+
+        query = query.filter(Booking.status == status_filter)
     
     return query.order_by(Booking.created_at.desc()).limit(limit).offset(offset).all()
 
@@ -120,11 +130,11 @@ def approve_booking(db: Session, booking_id: str, organizer_id: str) -> Booking:
             raise PermissionError("You do not have permission to approve this booking")
         
         # Status transition guard: Only PENDING can be approved
-        if booking.status == "APPROVED":
-            raise ValueError("Booking is already approved")
-        if booking.status == "REJECTED":
-            raise ValueError("Cannot approve a rejected booking")
-        if booking.status != "PENDING":
+        if booking.status == BookingStatus.CONFIRMED:
+            raise ValueError("Booking is already confirmed")
+        if booking.status == BookingStatus.CANCELLED:
+            raise ValueError("Cannot confirm a cancelled booking")
+        if booking.status != BookingStatus.PENDING:
             raise ValueError(f"Cannot approve booking with status: {booking.status}")
         
         # Re-check seat availability atomically within transaction
@@ -137,13 +147,13 @@ def approve_booking(db: Session, booking_id: str, organizer_id: str) -> Booking:
                 f"Not enough seats available. Available: {available}, Requested: {requested_seats}"
             )
         
-        # Update status to APPROVED
-        booking.status = "APPROVED"
+        # Update status to CONFIRMED
+        booking.status = BookingStatus.CONFIRMED
         db.commit()
         db.refresh(booking)
         
         return booking
-    except Exception as e:
+    except Exception:
         db.rollback()
         raise
 
@@ -178,20 +188,20 @@ def reject_booking(db: Session, booking_id: str, organizer_id: str) -> Booking:
             raise PermissionError("You do not have permission to reject this booking")
         
         # Status transition guard: Only PENDING can be rejected
-        if booking.status == "REJECTED":
-            raise ValueError("Booking is already rejected")
-        if booking.status == "APPROVED":
-            raise ValueError("Cannot reject an approved booking")
-        if booking.status != "PENDING":
+        if booking.status == BookingStatus.CANCELLED:
+            raise ValueError("Booking is already cancelled")
+        if booking.status == BookingStatus.CONFIRMED:
+            raise ValueError("Cannot cancel a confirmed booking")
+        if booking.status != BookingStatus.PENDING:
             raise ValueError(f"Cannot reject booking with status: {booking.status}")
         
-        # Update status to REJECTED
-        booking.status = "REJECTED"
+        # Update status to CANCELLED
+        booking.status = BookingStatus.CANCELLED
         db.commit()
         db.refresh(booking)
         
         return booking
-    except Exception as e:
+    except Exception:
         db.rollback()
         raise
 

@@ -345,6 +345,8 @@ export interface OrganizerBooking {
   seats_booked: number;
   source: string;
   status: string;
+  amount_snapshot?: number | null;
+  expires_at?: string | null;
   created_at: string;
   trip_title: string | null;
   trip_destination: string | null;
@@ -359,8 +361,14 @@ export interface OrganizerBooking {
   currency: string | null;
 }
 
+interface OrganizerBookingsQuery {
+  limit?: number;
+  offset?: number;
+}
+
 export async function getOrganizerBookings(
-  status?: string
+  status?: string,
+  query: OrganizerBookingsQuery = {}
 ): Promise<OrganizerBooking[]> {
   const token = getToken();
 
@@ -372,6 +380,12 @@ export async function getOrganizerBookings(
   // Only send status param if it's provided and not empty (not "All")
   if (status && status.trim() !== "") {
     url.searchParams.append("status", status);
+  }
+  if (typeof query.limit === "number") {
+    url.searchParams.append("limit", String(query.limit));
+  }
+  if (typeof query.offset === "number") {
+    url.searchParams.append("offset", String(query.offset));
   }
 
   const response = await fetch(url.toString(), {

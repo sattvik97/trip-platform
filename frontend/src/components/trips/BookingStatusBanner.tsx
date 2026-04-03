@@ -2,135 +2,57 @@
 
 import Link from "next/link";
 import { UserBooking } from "@/src/lib/api/user";
+import { normalizeBookingStatus } from "@/src/lib/bookingFinance";
 
 interface BookingStatusBannerProps {
   booking: UserBooking;
 }
 
+const MESSAGES: Record<string, { title: string; body: string; tone: string }> = {
+  PENDING: {
+    title: "Booking Pending",
+    body: "Your reservation is active and waiting for payment completion/confirmation.",
+    tone: "amber",
+  },
+  CONFIRMED: {
+    title: "Booking Confirmed",
+    body: "Payment is complete and your trip slot is secured.",
+    tone: "emerald",
+  },
+  EXPIRED: {
+    title: "Booking Expired",
+    body: "The booking hold window ended before payment completion.",
+    tone: "slate",
+  },
+  CANCELLED: {
+    title: "Booking Cancelled",
+    body: "This booking is cancelled. You can create a new booking for this trip.",
+    tone: "rose",
+  },
+};
+
+const TONE_CLASSES: Record<string, string> = {
+  amber: "border-amber-300 bg-amber-50 text-amber-900",
+  emerald: "border-emerald-300 bg-emerald-50 text-emerald-900",
+  slate: "border-slate-300 bg-slate-50 text-slate-900",
+  rose: "border-rose-300 bg-rose-50 text-rose-900",
+};
+
 export function BookingStatusBanner({ booking }: BookingStatusBannerProps) {
-  if (booking.status === "PENDING") {
-    return (
-      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r-lg">
-        <div className="flex items-start">
-          <div className="flex-shrink-0">
-            <svg
-              className="h-5 w-5 text-yellow-400"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-          <div className="ml-3 flex-1">
-            <h3 className="text-sm font-medium text-yellow-800">
-              Booking Request Pending
-            </h3>
-            <div className="mt-2 text-sm text-yellow-700">
-              <p>
-                Your booking request is awaiting organizer approval. You'll be
-                notified once it's reviewed.
-              </p>
-            </div>
-            <div className="mt-3">
-              <Link
-                href={`/bookings/${booking.id}/confirmation`}
-                className="text-sm font-medium text-yellow-800 underline hover:text-yellow-900"
-              >
-                View booking details →
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const status = normalizeBookingStatus(booking.status);
+  const meta = MESSAGES[status] || MESSAGES.PENDING;
+  const toneClass = TONE_CLASSES[meta.tone] || TONE_CLASSES.amber;
 
-  if (booking.status === "APPROVED") {
-    return (
-      <div className="bg-green-50 border-l-4 border-green-400 p-4 mb-6 rounded-r-lg">
-        <div className="flex items-start">
-          <div className="flex-shrink-0">
-            <svg
-              className="h-5 w-5 text-green-400"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-          <div className="ml-3 flex-1">
-            <h3 className="text-sm font-medium text-green-800">
-              Booking Confirmed
-            </h3>
-            <div className="mt-2 text-sm text-green-700">
-              <p>
-                Your booking has been approved! Your spot is confirmed for this
-                trip.
-              </p>
-            </div>
-            <div className="mt-3">
-              <Link
-                href={`/bookings/${booking.id}/confirmation`}
-                className="text-sm font-medium text-green-800 underline hover:text-green-900"
-              >
-                View booking details →
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (booking.status === "REJECTED") {
-    return (
-      <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6 rounded-r-lg">
-        <div className="flex items-start">
-          <div className="flex-shrink-0">
-            <svg
-              className="h-5 w-5 text-red-400"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-          <div className="ml-3 flex-1">
-            <h3 className="text-sm font-medium text-red-800">
-              Booking Request Rejected
-            </h3>
-            <div className="mt-2 text-sm text-red-700">
-              <p>
-                Your booking request was not approved. You can explore other
-                trips or contact the organizer for more information.
-              </p>
-            </div>
-            <div className="mt-3">
-              <Link
-                href={`/bookings/${booking.id}/confirmation`}
-                className="text-sm font-medium text-red-800 underline hover:text-red-900"
-              >
-                View booking details →
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return null;
+  return (
+    <div className={`mb-6 rounded-xl border p-4 ${toneClass}`}>
+      <h3 className="text-sm font-semibold">{meta.title}</h3>
+      <p className="mt-1 text-sm opacity-90">{meta.body}</p>
+      <Link
+        href={`/bookings/${booking.id}/confirmation`}
+        className="mt-3 inline-flex text-sm font-semibold underline"
+      >
+        View booking details
+      </Link>
+    </div>
+  );
 }
-

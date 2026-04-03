@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.crud.trip import list_trips_filtered
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from pydantic import BaseModel, conint, EmailStr, Field
 
 from app.db.deps import get_db
@@ -21,10 +22,13 @@ from app.crud.trip import (
 )
 from app.crud.availability import get_available_seats
 from app.core.auth import get_current_end_user, require_organizer
-from app.models.booking import Booking
+from app.payments.deps import get_payment_provider
+from app.payments.providers import PaymentProvider
+from app.services.payment_service import PaymentService
+from app.models.booking import Booking, BookingStatus
 from app.models.end_user import EndUser
 from app.models.organizer import Organizer
-from app.models.trip import TripStatus
+from app.models.trip import Trip, TripStatus
 from app.crud.trip_image import get_trip_images
 
 router = APIRouter()
@@ -276,6 +280,7 @@ def create_booking_request(
     payload: BookingRequest,
     db: Session = Depends(get_db),
     current_user: EndUser = Depends(get_current_end_user),
+    provider: PaymentProvider = Depends(get_payment_provider),
 ):
     """
     Create a booking request for a trip.
@@ -348,7 +353,7 @@ def create_booking_request(
     from app.crud.booking import get_user_booking_for_trip
     existing_booking = get_user_booking_for_trip(db, current_user.id, trip_id)
     
-    if existing_booking and existing_booking.status == "PENDING":
+    if existing_booking and existing_booking.status == BookingStatus.PENDING:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="You already have a pending booking request for this trip"
@@ -357,14 +362,53 @@ def create_booking_request(
     # Convert traveler details to JSONB format
     traveler_details_json = [traveler.model_dump() for traveler in payload.travelers]
     
-    # Create booking with status PENDING
-    # Note: PENDING bookings do NOT reduce available seats (only confirmed bookings do)
+    # Lock trip row and re-check capacity just before insert.
+    locked_trip = (
+        db.query(Trip)
+        .filter(Trip.id == trip_id)
+        .with_for_update()
+        .first()
+    )
+    if not locked_trip:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Trip not found",
+        )
+
+    now = datetime.now(timezone.utc)
+    db.query(Booking).filter(
+        Booking.trip_id == trip_id,
+        Booking.status == BookingStatus.PENDING,
+        Booking.expires_at < now,
+    ).update(
+        {Booking.status: BookingStatus.EXPIRED},
+        synchronize_session=False,
+    )
+
+    held_seats = (
+        db.query(func.coalesce(func.sum(Booking.seats_booked), 0))
+        .filter(
+            Booking.trip_id == trip_id,
+            Booking.status.in_([BookingStatus.PENDING, BookingStatus.CONFIRMED]),
+        )
+        .scalar()
+    )
+    if int(held_seats or 0) + payload.num_travelers > locked_trip.total_seats:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Not enough seats available",
+        )
+
+    # Create booking with a payment hold window.
+    hold_expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
     booking = Booking(
         trip_id=trip_id,
         user_id=current_user.id,
         seats_booked=payload.num_travelers,
+        amount_snapshot=locked_trip.price * payload.num_travelers,
         source="user",
-        status="PENDING",
+        status=BookingStatus.PENDING,
+        expires_at=hold_expires_at,
         num_travelers=payload.num_travelers,
         traveler_details=traveler_details_json,
         contact_name=payload.contact_name,
@@ -378,7 +422,18 @@ def create_booking_request(
     db.add(booking)
     db.commit()
     db.refresh(booking)
-    
+
+    try:
+        payment_service = PaymentService(db, provider)
+        payment_service.create_payment(booking_id=booking.id, user_id=current_user.id)
+    except HTTPException as exc:
+        # Booking hold is already committed; user can start or retry payment from confirmation.
+        if exc.status_code >= 500:
+            raise
+    except Exception:
+        # Provider not fully configured (e.g. Razorpay order API); booking remains valid.
+        pass
+
     return {
         "message": "Booking request submitted successfully",
         "booking_id": booking.id,

@@ -183,6 +183,13 @@ export function Header() {
                           >
                             Organizer Dashboard
                           </Link>
+                          <Link
+                            href="/admin/payments"
+                            className="block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
+                            onClick={() => setAccountOpen(false)}
+                          >
+                            Admin Payments
+                          </Link>
                           <div className="border-t border-gray-200 my-1" />
                           <button
                             onClick={() => {

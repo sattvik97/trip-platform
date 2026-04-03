@@ -2,9 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { isUserAuthenticated } from "@/src/lib/userAuth";
 import { getUserBookingForTrip, UserBooking } from "@/src/lib/api/user";
 import { useAuth } from "@/src/contexts/AuthContext";
+import { normalizeBookingStatus } from "@/src/lib/bookingFinance";
 
 interface BookingCardProps {
   tripId: string;
@@ -82,13 +82,14 @@ export function BookingCard({
       return { text: "No Seats Available", disabled: true };
     }
     if (booking) {
-      if (booking.status === "PENDING") {
+      const normalized = normalizeBookingStatus(booking.status);
+      if (normalized === "PENDING") {
         return { text: "View Booking Request", disabled: false };
       }
-      if (booking.status === "APPROVED") {
+      if (normalized === "CONFIRMED") {
         return { text: "View Confirmed Booking", disabled: false };
       }
-      if (booking.status === "REJECTED") {
+      if (normalized === "CANCELLED" || normalized === "EXPIRED") {
         return { text: "View Booking Details", disabled: false };
       }
     }
@@ -223,4 +224,3 @@ export function BookingCard({
     </div>
   );
 }
-

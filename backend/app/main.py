@@ -15,6 +15,8 @@ from app.api.v1.user_bookings import router as user_bookings_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.user_auth import router as user_auth_router
 from app.api.v1.trip_images import router as trip_images_router
+from app.api.v1.payments import router as payments_router
+from app.api.v1.admin_payments import router as admin_payments_router
 
 # Configure logging
 logging.basicConfig(
@@ -198,6 +200,18 @@ app.include_router(
     bookings_router,
     prefix="/api/v1/bookings",
     tags=["Bookings"],   # ✅ IMPORTANT
+)
+
+app.include_router(
+    payments_router,
+    prefix="/api/v1/payments",
+    tags=["Payments"],
+)
+
+app.include_router(
+    admin_payments_router,
+    prefix="/api/v1/admin/payments",
+    tags=["Admin Payments"],
 )
 
 app.include_router(
