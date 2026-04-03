@@ -32,6 +32,12 @@ class Settings(BaseSettings):
     
     # CORS configuration
     CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
+
+    # Payments
+    PAYMENT_PROVIDER: Literal["MOCK", "RAZORPAY"] = "MOCK"
+    RAZORPAY_KEY_ID: str = ""
+    RAZORPAY_KEY_SECRET: str = ""
+    RAZORPAY_WEBHOOK_SECRET: str = ""
     
     # Pydantic v2 model configuration
     # Conditionally load .env file based on ENV variable (evaluated at import time)

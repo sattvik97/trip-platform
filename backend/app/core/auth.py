@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
@@ -154,3 +155,76 @@ def require_organizer(
         )
     
     return current_user.organizer_id
+
+
+@dataclass
+class PaymentListActor:
+    """Either an end user (listing own booking payments) or an organizer (listing by trip ownership)."""
+
+    end_user: Optional[EndUser] = None
+    organizer: Optional[User] = None
+
+    def __post_init__(self) -> None:
+        if (self.end_user is None) == (self.organizer is None):
+            raise ValueError("Exactly one of end_user or organizer must be set")
+
+
+def get_payment_list_actor(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db),
+) -> PaymentListActor:
+    """
+    Resolve JWT to end user or organizer for shared payment list/events routes.
+    - token_type == \"user\" → end user
+    - token_type == \"organizer\" or missing (legacy organizer tokens) → organizer User
+    """
+    token = credentials.credentials
+
+    try:
+        payload = jwt.decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM],
+        )
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired",
+        ) from None
+    except jwt.InvalidTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+        ) from None
+
+    user_id: Optional[str] = payload.get("sub")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token: user ID not found",
+        )
+
+    token_type = payload.get("token_type")
+
+    if token_type == "user":
+        end_user = get_end_user_by_id(db, user_id)
+        if not end_user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found",
+            )
+        return PaymentListActor(end_user=end_user)
+
+    # Organizer (explicit or legacy token without token_type)
+    user = get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+        )
+    if user.role != UserRole.organizer:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This endpoint requires user or organizer authentication",
+        )
+    return PaymentListActor(organizer=user)

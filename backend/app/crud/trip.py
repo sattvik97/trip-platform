@@ -5,7 +5,7 @@ from datetime import date
 from sqlalchemy import func, or_, literal
 
 from app.models.trip import Trip, TripStatus
-from app.models.booking import Booking
+from app.models.booking import Booking, BookingStatus
 from app.schemas.trip import TripCreate, TripUpdate
 from app.core.slug import slugify
 
@@ -300,10 +300,7 @@ def search_trips(
             db.query(func.coalesce(func.sum(Booking.seats_booked), 0))
             .filter(
                 Booking.trip_id == Trip.id,
-                or_(
-                    Booking.status == "APPROVED",
-                    Booking.status == "confirmed",  # Legacy support
-                )
+                Booking.status.in_([BookingStatus.PENDING, BookingStatus.CONFIRMED])
             )
             .correlate(Trip)
             .as_scalar()
@@ -365,16 +362,12 @@ def list_organizer_trips(
 
 
 def get_booked_seats_count(db: Session, trip_id: str) -> int:
-    """Get count of approved/confirmed booked seats for a trip."""
-    from sqlalchemy import or_
+    """Get count of seats held by pending or confirmed bookings for a trip."""
     booked = (
         db.query(func.coalesce(func.sum(Booking.seats_booked), 0))
         .filter(
             Booking.trip_id == trip_id,
-            or_(
-                Booking.status == "APPROVED",
-                Booking.status == "confirmed",  # Legacy support
-            ),
+            Booking.status.in_([BookingStatus.PENDING, BookingStatus.CONFIRMED]),
         )
         .scalar()
     )

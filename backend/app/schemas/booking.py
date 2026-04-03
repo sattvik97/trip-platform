@@ -1,6 +1,11 @@
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from datetime import datetime
+from decimal import Decimal
+from pydantic import conint
+
+from app.models.booking import BookingStatus
+from app.schemas.payment import PaymentOrderInfo, PaymentResponse
 
 class BookingResponse(BaseModel):
     id: str
@@ -10,7 +15,9 @@ class BookingResponse(BaseModel):
     source: str
     status: str
     created_at: datetime
-    
+    amount_snapshot: Optional[Decimal] = None
+    expires_at: Optional[datetime] = None
+
     # Trip info for organizer view
     trip_title: Optional[str] = None
     trip_destination: Optional[str] = None
@@ -32,4 +39,30 @@ class BookingResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+
+class BookingCreateRequest(BaseModel):
+    trip_id: str
+    seats: conint(gt=0)
+
+
+class BookingCheckoutResponse(BaseModel):
+    id: str
+    trip_id: str
+    user_id: Optional[str] = None
+    seats: int
+    amount_snapshot: Decimal
+    currency: str
+    status: BookingStatus
+    expires_at: datetime
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class BookingWithPaymentOrderResponse(BaseModel):
+    booking: BookingCheckoutResponse
+    payment: PaymentResponse
+    payment_order: PaymentOrderInfo
 
