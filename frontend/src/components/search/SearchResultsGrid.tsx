@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import type { Trip } from "@/src/types/trip";
-import { SearchTripCard } from "./SearchTripCard";
+import { DiscoverySearchCard } from "./DiscoverySearchCard";
 import { SortControls, type SortOption } from "./SortControls";
 import { PaginationControls } from "@/src/components/trips/PaginationControls";
 
@@ -56,22 +56,19 @@ export function SearchResultsGrid({
 
   return (
     <>
-      {/* Sort Controls */}
-      <div className="flex justify-end mb-6">
+      <div className="mb-6 flex justify-end">
         <SortControls
           onSortChange={setSortOption}
           currentSort={sortOption}
         />
       </div>
 
-      {/* Results Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+      <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         {sortedTrips.map((trip) => (
-          <SearchTripCard key={trip.id} trip={trip} />
+          <DiscoverySearchCard key={trip.id} trip={trip} />
         ))}
       </div>
 
-      {/* Pagination */}
       <PaginationControls
         currentPage={currentPage}
         hasMore={hasMore}

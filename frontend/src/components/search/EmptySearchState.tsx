@@ -2,11 +2,15 @@ import Link from "next/link";
 
 interface EmptySearchStateProps {
   hasActiveFilters: boolean;
+  backendUnavailable?: boolean;
 }
 
-export function EmptySearchState({ hasActiveFilters }: EmptySearchStateProps) {
+export function EmptySearchState({
+  hasActiveFilters,
+  backendUnavailable = false,
+}: EmptySearchStateProps) {
   return (
-    <div className="text-center py-20">
+    <div className="rounded-[2rem] border border-white/80 bg-white/85 py-20 text-center shadow-lg shadow-slate-950/5">
       <div className="max-w-lg mx-auto">
         {/* Icon */}
         <div className="mb-6">
@@ -27,16 +31,24 @@ export function EmptySearchState({ hasActiveFilters }: EmptySearchStateProps) {
 
         {/* Heading */}
         <h3 className="text-2xl font-semibold text-gray-900 mb-3">
-          {hasActiveFilters
+          {backendUnavailable
+            ? "We could not reach the trip service"
+            : hasActiveFilters
             ? "We couldn't find trips matching your search"
             : "Start exploring amazing trips"}
         </h3>
 
         {/* Message */}
         <p className="text-gray-600 mb-8 leading-relaxed">
-          {hasActiveFilters ? (
+          {backendUnavailable ? (
             <>
-              Don't worry! Try adjusting your search to discover more options.
+              The frontend is running, but the backend trip API is not reachable right now.
+              <br />
+              If you are working locally, start the FastAPI server on port 8000 or set <code>NEXT_PUBLIC_API_BASE_URL</code>.
+            </>
+          ) : hasActiveFilters ? (
+            <>
+              Do not worry. Try adjusting your search to discover more options.
               <br />
               You might find great trips by relaxing your dates or expanding your budget.
             </>
@@ -46,7 +58,7 @@ export function EmptySearchState({ hasActiveFilters }: EmptySearchStateProps) {
         </p>
 
         {/* Suggestions */}
-        {hasActiveFilters && (
+        {hasActiveFilters && !backendUnavailable && (
           <div className="space-y-4 mb-8">
             <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 text-left">
               <h4 className="font-medium text-gray-900 mb-2">Suggestions:</h4>
@@ -106,28 +118,36 @@ export function EmptySearchState({ hasActiveFilters }: EmptySearchStateProps) {
 
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          {hasActiveFilters && (
+          {hasActiveFilters && !backendUnavailable && (
             <>
               <Link
                 href="/trips/search"
-                className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                className="inline-flex items-center justify-center rounded-full bg-slate-950 px-6 py-3 font-medium text-white transition-colors hover:bg-slate-800"
               >
                 Clear all filters
               </Link>
               <Link
-                href="/"
-                className="inline-flex items-center justify-center px-6 py-3 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                href="/discover"
+                className="inline-flex items-center justify-center rounded-full border border-slate-300 px-6 py-3 font-medium text-slate-700 transition-colors hover:border-slate-950 hover:text-slate-950"
               >
-                Start new search
+                Explore collections
               </Link>
             </>
           )}
           {!hasActiveFilters && (
             <Link
-              href="/"
-              className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              href="/discover"
+              className="inline-flex items-center justify-center rounded-full bg-slate-950 px-6 py-3 font-medium text-white transition-colors hover:bg-slate-800"
             >
-              Browse all trips
+              {backendUnavailable ? "Open collections" : "Browse all trips"}
+            </Link>
+          )}
+          {backendUnavailable && hasActiveFilters && (
+            <Link
+              href="/discover"
+              className="inline-flex items-center justify-center rounded-full bg-slate-950 px-6 py-3 font-medium text-white transition-colors hover:bg-slate-800"
+            >
+              Explore collections
             </Link>
           )}
         </div>

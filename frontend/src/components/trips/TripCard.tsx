@@ -28,7 +28,7 @@ export function TripCard({ trip }: { trip: Trip }) {
         </p>
       </div>
       <Link
-        href={`/trips/${trip.organizer_id}/${trip.slug}`}
+        href={`/trip/${trip.slug}`}
         className="inline-block mt-4 text-blue-600 hover:text-blue-800 font-medium"
       >
         View Details →

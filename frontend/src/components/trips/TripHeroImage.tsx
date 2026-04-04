@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { getTripImages, TripImage } from "@/src/lib/api/trip-images";
 import { getImageUrl } from "@/src/lib/api/config";
+import { formatTagLabel } from "@/src/lib/tripPresentation";
 
 interface TripHeroImageProps {
   tripId: string;
@@ -64,11 +65,11 @@ export function TripHeroImage({
           onError={() => setImageError(true)}
         />
       ) : (
-        <div className="w-full h-full bg-gradient-to-br from-purple-400 to-blue-500"></div>
+        <div className="w-full h-full bg-gradient-to-br from-[#365d73] via-[#4f7e7a] to-[#d6a96f]"></div>
       )}
 
       {/* Dark Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/20"></div>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-black/10"></div>
 
       {/* Content Overlay */}
       <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-12">
@@ -76,7 +77,7 @@ export function TripHeroImage({
           {/* Seats Badge - Top Right */}
           <div className="absolute top-6 right-6 md:top-12 md:right-12">
             <div className="bg-white/95 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-semibold text-gray-900">
-              {seatsAvailable} {seatsAvailable === 1 ? "seat" : "seats"} left
+              Live seats: {seatsAvailable} {seatsAvailable === 1 ? "spot" : "spots"}
             </div>
           </div>
 
@@ -138,7 +139,7 @@ export function TripHeroImage({
                     key={index}
                     className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white/20 backdrop-blur-sm text-white border border-white/30"
                   >
-                    {tag}
+                    {formatTagLabel(tag)}
                   </span>
                 ))}
               </div>
@@ -149,4 +150,3 @@ export function TripHeroImage({
     </div>
   );
 }
-

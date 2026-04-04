@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 
 interface ExpandableTextProps {
   text: string;
@@ -14,18 +14,7 @@ export function ExpandableText({
   className = "",
 }: ExpandableTextProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [shouldShowButton, setShouldShowButton] = useState(false);
-  const textRef = useRef<HTMLParagraphElement>(null);
-
-  useEffect(() => {
-    // Check if text is longer than maxLength
-    if (text.length > maxLength) {
-      setShouldShowButton(true);
-    } else {
-      setShouldShowButton(false);
-      setIsExpanded(true);
-    }
-  }, [text, maxLength]);
+  const shouldShowButton = text.length > maxLength;
 
   const displayText = isExpanded || !shouldShowButton
     ? text
@@ -33,10 +22,7 @@ export function ExpandableText({
 
   return (
     <div className={className}>
-      <p
-        ref={textRef}
-        className="text-gray-700 leading-relaxed whitespace-pre-line text-lg md:text-xl"
-      >
+      <p className="text-gray-700 leading-relaxed whitespace-pre-line text-lg md:text-xl">
         {displayText}
       </p>
       {shouldShowButton && (

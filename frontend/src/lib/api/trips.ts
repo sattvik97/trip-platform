@@ -1,5 +1,5 @@
 import type { Trip } from "@/src/types/trip";
-import { buildApiUrl } from "./config";
+import { buildApiUrl, getApiBase } from "./config";
 
 export interface GetTripsParams {
   page?: number;
@@ -25,6 +25,113 @@ export interface SearchTripsParams {
   max_price?: number;
   min_days?: number;
   max_days?: number;
+}
+
+const API_CONNECTION_ERROR_CODES = new Set([
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "ENOTFOUND",
+  "ETIMEDOUT",
+]);
+const READ_FALLBACK_WINDOW_MS = 10_000;
+const loggedApiMessages = new Set<string>();
+let readsUnavailableUntil = 0;
+
+type ErrorRecord = {
+  cause?: unknown;
+  code?: unknown;
+  errors?: unknown;
+};
+
+function getErrorCode(error: unknown): string | null {
+  if (!error || typeof error !== "object") {
+    return null;
+  }
+
+  const maybeError = error as ErrorRecord;
+
+  if (typeof maybeError.code === "string") {
+    return maybeError.code;
+  }
+
+  if (Array.isArray(maybeError.errors)) {
+    for (const nestedError of maybeError.errors) {
+      const nestedCode = getErrorCode(nestedError);
+      if (nestedCode) {
+        return nestedCode;
+      }
+    }
+  }
+
+  return getErrorCode(maybeError.cause);
+}
+
+function isBackendConnectionIssue(error: unknown): boolean {
+  const code = getErrorCode(error);
+
+  if (code && API_CONNECTION_ERROR_CODES.has(code)) {
+    return true;
+  }
+
+  return error instanceof TypeError && /fetch failed/i.test(error.message);
+}
+
+function logOnce(key: string, log: () => void) {
+  if (loggedApiMessages.has(key)) {
+    return;
+  }
+
+  loggedApiMessages.add(key);
+  log();
+}
+
+function markReadsUnavailable() {
+  readsUnavailableUntil = Date.now() + READ_FALLBACK_WINDOW_MS;
+}
+
+export function isTripsApiTemporarilyUnavailable(): boolean {
+  return Date.now() < readsUnavailableUntil;
+}
+
+function logReadFailure(label: string, error: unknown) {
+  if (isBackendConnectionIssue(error)) {
+    markReadsUnavailable();
+    logOnce("trips-api-unavailable", () => {
+      console.warn(
+        `[Trips API] Backend at ${getApiBase()} is unreachable. Showing fallback empty states until it recovers.`
+      );
+    });
+    return;
+  }
+
+  logOnce(label, () => {
+    console.error(`${label}:`, error);
+  });
+}
+
+async function fetchReadJson<T>(
+  url: string,
+  fallback: T,
+  label: string
+): Promise<T> {
+  if (isTripsApiTemporarilyUnavailable()) {
+    return fallback;
+  }
+
+  try {
+    const response = await fetch(url, {
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed with status ${response.status}`);
+    }
+
+    return (await response.json()) as T;
+  } catch (error) {
+    logReadFailure(label, error);
+    return fallback;
+  }
 }
 
 export async function getTrips(
@@ -65,25 +172,16 @@ export async function getTrips(
     });
   }
 
-  try {
-    const response = await fetch(url.toString(), {
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch trips: ${response.statusText}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("Error fetching trips:", error);
-    return [];
-  }
+  return fetchReadJson(url.toString(), [], "Error fetching trips");
 }
 
 export async function getTripBySlug(
   tripSlug: string
 ): Promise<Trip | null> {
+  if (isTripsApiTemporarilyUnavailable()) {
+    return null;
+  }
+
   try {
     const response = await fetch(buildApiUrl(`/api/v1/trips/${tripSlug}`), {
       cache: "no-store",
@@ -99,26 +197,17 @@ export async function getTripBySlug(
 
     return await response.json();
   } catch (error) {
-    console.error("Error fetching trip:", error);
+    logReadFailure("Error fetching trip", error);
     return null;
   }
 }
 
 export async function getWeekendGetaways(): Promise<Trip[]> {
-  try {
-    const response = await fetch(buildApiUrl("/api/v1/trips/weekend-getaways"), {
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch weekend getaways: ${response.statusText}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("Error fetching weekend getaways:", error);
-    return [];
-  }
+  return fetchReadJson(
+    buildApiUrl("/api/v1/trips/weekend-getaways"),
+    [],
+    "Error fetching weekend getaways"
+  );
 }
 
 export async function searchTrips(
@@ -180,20 +269,7 @@ export async function searchTrips(
     url.searchParams.set("max_days", max_days.toString());
   }
 
-  try {
-    const response = await fetch(url.toString(), {
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to search trips: ${response.statusText}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("Error searching trips:", error);
-    return [];
-  }
+  return fetchReadJson(url.toString(), [], "Error searching trips");
 }
 
 export interface TravelerDetail {

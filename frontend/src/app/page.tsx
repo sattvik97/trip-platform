@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { Header } from "@/src/components/layout/Header";
 import { Footer } from "@/src/components/layout/Footer";
+import { BackendUnavailableNotice } from "@/src/components/common/BackendUnavailableNotice";
 import { HeroSearch } from "@/src/components/home/HeroSearch";
 import { SliderSection } from "@/src/components/home/SliderSection";
 import { GridSection } from "@/src/components/home/GridSection";
@@ -10,9 +11,11 @@ import {
   type HomepageCategory,
 } from "@/src/config/categories";
 import { fetchCategoryTrips } from "@/src/lib/categories";
-import { getWeekendGetaways } from "@/src/lib/api/trips";
+import { getWeekendGetaways, isTripsApiTemporarilyUnavailable } from "@/src/lib/api/trips";
 
 import type { Trip } from "@/src/types/trip";
+
+export const dynamic = "force-dynamic";
 
 interface CategorySectionProps {
   category: HomepageCategory;
@@ -48,7 +51,7 @@ async function WeekendGetawaysSection() {
   
   return (
     <SliderSection
-      title="This Weekend Getaways"
+      title="This Weekend"
       trips={trips}
       viewAllHref="/weekend-getaways"
     />
@@ -58,9 +61,15 @@ async function WeekendGetawaysSection() {
 async function HomepageSections() {
   // Fetch trips for all categories efficiently (deduplicates API calls)
   const categoryTripsMap = await fetchCategoryTrips(HOMEPAGE_CATEGORIES);
+  const backendUnavailable = isTripsApiTemporarilyUnavailable();
 
   return (
     <div className="py-12">
+      {backendUnavailable && (
+        <div className="container mx-auto mb-10 max-w-7xl px-4">
+          <BackendUnavailableNotice />
+        </div>
+      )}
       {/* Weekend Getaways - separate section, not mixed with tags */}
       <Suspense
         fallback={
