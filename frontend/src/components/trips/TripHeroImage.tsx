@@ -22,7 +22,6 @@ export function TripHeroImage({
   tags,
   seatsAvailable,
 }: TripHeroImageProps) {
-  const [images, setImages] = useState<TripImage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [heroImage, setHeroImage] = useState<TripImage | null>(null);
   const [imageError, setImageError] = useState(false);
@@ -32,7 +31,6 @@ export function TripHeroImage({
       try {
         setIsLoading(true);
         const fetchedImages = await getTripImages(tripId);
-        setImages(fetchedImages);
         // Find hero image (position 0) or use first image
         const coverImage = fetchedImages.find((img) => img.position === 0) || fetchedImages[0] || null;
         setHeroImage(coverImage);

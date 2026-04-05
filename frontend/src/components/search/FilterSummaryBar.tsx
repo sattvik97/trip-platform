@@ -1,7 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-
 interface FilterSummaryBarProps {
   searchParams: {
     q?: string;
@@ -19,7 +17,6 @@ interface FilterSummaryBarProps {
 }
 
 export function FilterSummaryBar({ searchParams }: FilterSummaryBarProps) {
-  const router = useRouter();
   const activeFilters: Array<{ label: string; value: string }> = [];
 
   // Dates
@@ -59,17 +56,17 @@ export function FilterSummaryBar({ searchParams }: FilterSummaryBarProps) {
     const maxPrice = parseInt(searchParams.max_price);
     activeFilters.push({
       label: "Budget",
-      value: `₹${minPrice.toLocaleString()} - ₹${maxPrice.toLocaleString()}`,
+      value: `Rs. ${minPrice.toLocaleString()} - Rs. ${maxPrice.toLocaleString()}`,
     });
   } else if (searchParams.max_price) {
     activeFilters.push({
       label: "Budget",
-      value: `Up to ₹${parseInt(searchParams.max_price).toLocaleString()}`,
+      value: `Up to Rs. ${parseInt(searchParams.max_price).toLocaleString()}`,
     });
   } else if (searchParams.min_price) {
     activeFilters.push({
       label: "Budget",
-      value: `From ₹${parseInt(searchParams.min_price).toLocaleString()}`,
+      value: `From Rs. ${parseInt(searchParams.min_price).toLocaleString()}`,
     });
   }
 
@@ -136,4 +133,5 @@ export function FilterSummaryBar({ searchParams }: FilterSummaryBarProps) {
     </div>
   );
 }
+
 

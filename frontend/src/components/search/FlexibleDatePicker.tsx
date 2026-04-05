@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-
 type DateMode = "exact" | "flexible" | "month";
 
 interface FlexibleDatePickerProps {

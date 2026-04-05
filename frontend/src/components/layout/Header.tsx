@@ -208,18 +208,39 @@ export function Header() {
                       ) : (
                         <>
                           <Link
-                            href="/organizer/dashboard"
+                            href="/organizer/overview"
                             className="block rounded-2xl px-4 py-3 text-slate-700 transition-colors hover:bg-white/80"
                             onClick={closeMenus}
                           >
-                            Organizer Dashboard
+                            Overview
                           </Link>
                           <Link
-                            href="/admin/payments"
+                            href="/organizer/trips"
                             className="block rounded-2xl px-4 py-3 text-slate-700 transition-colors hover:bg-white/80"
                             onClick={closeMenus}
                           >
-                            Admin Payments
+                            Trips
+                          </Link>
+                          <Link
+                            href="/organizer/bookings"
+                            className="block rounded-2xl px-4 py-3 text-slate-700 transition-colors hover:bg-white/80"
+                            onClick={closeMenus}
+                          >
+                            Bookings
+                          </Link>
+                          <Link
+                            href="/organizer/finance"
+                            className="block rounded-2xl px-4 py-3 text-slate-700 transition-colors hover:bg-white/80"
+                            onClick={closeMenus}
+                          >
+                            Finance
+                          </Link>
+                          <Link
+                            href="/organizer/profile"
+                            className="block rounded-2xl px-4 py-3 text-slate-700 transition-colors hover:bg-white/80"
+                            onClick={closeMenus}
+                          >
+                            Profile
                           </Link>
                           <div className="my-2 border-t border-slate-200" />
                           <button
@@ -291,18 +312,39 @@ export function Header() {
                   ) : (
                     <>
                       <Link
-                        href="/organizer/dashboard"
+                        href="/organizer/overview"
                         className="rounded-2xl px-4 py-3 text-slate-800 hover:bg-[#f5efe6]"
                         onClick={closeMenus}
                       >
-                        Organizer dashboard
+                        Overview
                       </Link>
                       <Link
-                        href="/admin/payments"
+                        href="/organizer/trips"
                         className="rounded-2xl px-4 py-3 text-slate-800 hover:bg-[#f5efe6]"
                         onClick={closeMenus}
                       >
-                        Admin payments
+                        Trips
+                      </Link>
+                      <Link
+                        href="/organizer/bookings"
+                        className="rounded-2xl px-4 py-3 text-slate-800 hover:bg-[#f5efe6]"
+                        onClick={closeMenus}
+                      >
+                        Bookings
+                      </Link>
+                      <Link
+                        href="/organizer/finance"
+                        className="rounded-2xl px-4 py-3 text-slate-800 hover:bg-[#f5efe6]"
+                        onClick={closeMenus}
+                      >
+                        Finance
+                      </Link>
+                      <Link
+                        href="/organizer/profile"
+                        className="rounded-2xl px-4 py-3 text-slate-800 hover:bg-[#f5efe6]"
+                        onClick={closeMenus}
+                      >
+                        Profile
                       </Link>
                     </>
                   )}

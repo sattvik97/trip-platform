@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { registerUser } from "@/src/lib/api/user";
 import { AuthHeader } from "@/src/components/auth/AuthHeader";
@@ -9,7 +9,14 @@ import { AuthBanner } from "@/src/components/auth/AuthBanner";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextPath = (() => {
+    const candidate = searchParams.get("next") || "/";
+    return candidate.startsWith("/") ? candidate : "/";
+  })();
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
@@ -33,10 +40,12 @@ export default function RegisterPage() {
 
     try {
       await registerUser({
+        full_name: fullName.trim() || undefined,
         email,
+        phone: phone.trim() || undefined,
         password,
       });
-      router.push("/login?registered=true");
+      router.push(`/login?registered=true&next=${encodeURIComponent(nextPath)}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
     } finally {
@@ -58,7 +67,7 @@ export default function RegisterPage() {
               <p className="text-gray-600">
                 Already have an account?{" "}
                 <Link
-                  href="/login"
+                  href={`/login?next=${encodeURIComponent(nextPath)}`}
                   className="font-medium text-indigo-600 hover:text-indigo-500"
                 >
                   Sign in here
@@ -73,6 +82,24 @@ export default function RegisterPage() {
             )}
 
             <form className="space-y-6" onSubmit={handleSubmit}>
+              <div>
+                <label
+                  htmlFor="fullName"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Full name
+                </label>
+                <input
+                  id="fullName"
+                  name="fullName"
+                  type="text"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  placeholder="What should organizers call you?"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                />
+              </div>
+
               <div>
                 <label
                   htmlFor="email"
@@ -90,6 +117,24 @@ export default function RegisterPage() {
                   placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="phone"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Phone number
+                </label>
+                <input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  placeholder="Used to prefill trip requests"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
                 />
               </div>
 

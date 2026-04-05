@@ -6,8 +6,10 @@ import { notFound } from "next/navigation";
 import { Header } from "@/src/components/layout/Header";
 import { Footer } from "@/src/components/layout/Footer";
 import { getTripBySlug, createBookingRequest } from "@/src/lib/api/trips";
+import { getUserBookingForTrip, getUserProfile } from "@/src/lib/api/user";
 import type { Trip } from "@/src/types/trip";
 import { useAuth } from "@/src/contexts/AuthContext";
+import { normalizeBookingStatus } from "@/src/lib/bookingFinance";
 import {
   formatPriceInr,
   formatSeatCopy,
@@ -63,7 +65,7 @@ export default function BookingPage() {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      router.push("/login");
+      router.push(`/login?next=${encodeURIComponent(`/trip/${slug}/book`)}`);
       return;
     }
 
@@ -73,22 +75,45 @@ export default function BookingPage() {
         if (!tripData) {
           notFound();
         }
-        setTrip(tripData);
-        if (user?.email) {
-          setContactEmail(user.email);
-          setContactName((currentName) => {
-            if (currentName) {
-              return currentName;
-            }
 
-            const [rawName] = user.email.split("@");
+        const existingBooking = await getUserBookingForTrip(tripData.id).catch(() => null);
+        const existingStatus = existingBooking
+          ? normalizeBookingStatus(existingBooking.status)
+          : null;
+        if (existingBooking && existingStatus && ["REVIEW_PENDING", "PAYMENT_PENDING", "CONFIRMED"].includes(existingStatus)) {
+          router.replace(`/bookings/${existingBooking.id}/confirmation`);
+          return;
+        }
+
+        setTrip(tripData);
+
+        const profile = await getUserProfile().catch(() => null);
+        const email = profile?.email || user?.email || "";
+        if (email) {
+          setContactEmail(email);
+        }
+
+        if (profile?.phone) {
+          setContactPhone(profile.phone);
+        }
+
+        setContactName((currentName) => {
+          if (currentName) {
+            return currentName;
+          }
+          if (profile?.full_name) {
+            return profile.full_name;
+          }
+          if (email) {
+            const [rawName] = email.split("@");
             return rawName
               .split(/[._-]/)
               .filter(Boolean)
               .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
               .join(" ");
-          });
-        }
+          }
+          return "";
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load trip");
       } finally {
@@ -218,7 +243,7 @@ export default function BookingPage() {
               Request your place on {trip.title}
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-              You are not paying on this screen. You are sending the organizer a complete request so they can confirm the group fit and lock your spot.
+              You are not paying on this screen. You are sending the organizer a complete request so they can review fit first and only open payment if they approve it.
             </p>
           </div>
 
@@ -464,8 +489,8 @@ export default function BookingPage() {
               <h2 className="text-xl font-bold text-slate-950 mb-4">What happens after this?</h2>
               <div className="space-y-3 text-sm leading-7 text-slate-600">
                 <p>1. Your request reaches the organizer with all traveler and contact details.</p>
-                <p>2. The organizer reviews group fit and confirms there is still enough approved capacity.</p>
-                <p>3. You get a clear confirmed or declined outcome inside your booking hub.</p>
+                <p>2. If approved, you get a time-boxed payment window to lock your seat.</p>
+                <p>3. Your booking becomes confirmed only after payment succeeds inside your booking hub.</p>
               </div>
             </div>
 

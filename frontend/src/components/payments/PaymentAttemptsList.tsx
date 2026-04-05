@@ -7,7 +7,6 @@ import { PaymentStatusBadge } from "./StatusBadges";
 interface PaymentAttemptsListProps {
   attempts: PaymentAttempt[];
   isLoading?: boolean;
-  onViewEvents?: (payment: PaymentAttempt) => void;
   title?: string;
   emptyState?: string;
 }
@@ -15,7 +14,6 @@ interface PaymentAttemptsListProps {
 export function PaymentAttemptsList({
   attempts,
   isLoading = false,
-  onViewEvents,
   title = "Payment Attempts",
   emptyState = "No payment attempts yet.",
 }: PaymentAttemptsListProps) {
@@ -55,9 +53,6 @@ export function PaymentAttemptsList({
                 <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Created
                 </th>
-                <th className="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Actions
-                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
@@ -72,19 +67,6 @@ export function PaymentAttemptsList({
                   </td>
                   <td className="px-3 py-3 text-sm text-slate-600">
                     {formatDateTime(attempt.created_at)}
-                  </td>
-                  <td className="px-3 py-3 text-right text-sm">
-                    {onViewEvents ? (
-                      <button
-                        type="button"
-                        onClick={() => onViewEvents(attempt)}
-                        className="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
-                      >
-                        View Events
-                      </button>
-                    ) : (
-                      <span className="text-xs text-slate-400">-</span>
-                    )}
                   </td>
                 </tr>
               ))}

@@ -38,6 +38,8 @@ class Settings(BaseSettings):
     RAZORPAY_KEY_ID: str = ""
     RAZORPAY_KEY_SECRET: str = ""
     RAZORPAY_WEBHOOK_SECRET: str = ""
+    ORGANIZER_PLATFORM_FEE_PERCENT: float = 12.0
+    ORGANIZER_PAYOUT_DELAY_DAYS: int = 7
     
     # Pydantic v2 model configuration
     # Conditionally load .env file based on ENV variable (evaluated at import time)

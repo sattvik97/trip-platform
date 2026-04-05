@@ -36,6 +36,11 @@ class Trip(Base):
     description = Column(Text)
     destination = Column(String, nullable=False)
     price = Column(Integer, nullable=False)
+    meeting_point = Column(String, nullable=True)
+    difficulty_level = Column(String, nullable=True)
+    cancellation_policy = Column(Text, nullable=True)
+    inclusions = Column(ARRAY(String), nullable=True)
+    exclusions = Column(ARRAY(String), nullable=True)
 
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=False)

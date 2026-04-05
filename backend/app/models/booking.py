@@ -9,7 +9,8 @@ from app.db.base import Base
 
 
 class BookingStatus(str, enum.Enum):
-    PENDING = "PENDING"
+    REVIEW_PENDING = "REVIEW_PENDING"
+    PAYMENT_PENDING = "PAYMENT_PENDING"
     CONFIRMED = "CONFIRMED"
     CANCELLED = "CANCELLED"
     EXPIRED = "EXPIRED"
@@ -32,10 +33,10 @@ class Booking(Base):
     status = Column(
         SQLEnum(BookingStatus, name="bookingstatus"),
         nullable=False,
-        server_default=BookingStatus.PENDING.value,
+        server_default=BookingStatus.REVIEW_PENDING.value,
     )
 
-    expires_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    expires_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Existing optional booking detail fields.
@@ -46,6 +47,9 @@ class Booking(Base):
     contact_email = Column(String, nullable=True)
     price_per_person = Column(Integer, nullable=True)
     total_price = Column(Integer, nullable=True)
+    organizer_note = Column(String, nullable=True)
+    decision_reason = Column(String, nullable=True)
+    decision_at = Column(DateTime(timezone=True), nullable=True)
     payments = relationship(
         "Payment",
         back_populates="booking",

@@ -19,7 +19,6 @@ export function SafeImage({
   ...props
 }: SafeImageProps) {
   const [hasError, setHasError] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
   if (hasError || !src) {
     return (
@@ -42,9 +41,7 @@ export function SafeImage({
       className={className}
       onError={() => {
         setHasError(true);
-        setIsLoading(false);
       }}
-      onLoad={() => setIsLoading(false)}
       loading={props.loading || "lazy"}
       {...props}
     />

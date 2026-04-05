@@ -14,9 +14,16 @@ interface PaymentStatusBadgeProps {
 
 export function BookingStatusBadge({ status, className = "" }: BookingStatusBadgeProps) {
   const normalized = normalizeBookingStatus(status);
+  const labelMap: Record<string, string> = {
+    REVIEW_PENDING: "Review Pending",
+    PAYMENT_PENDING: "Payment Pending",
+    CONFIRMED: "Confirmed",
+    CANCELLED: "Cancelled",
+    EXPIRED: "Expired",
+  };
   return (
     <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${bookingStatusClass(normalized)} ${className}`}>
-      {normalized}
+      {labelMap[normalized] || normalized}
     </span>
   );
 }

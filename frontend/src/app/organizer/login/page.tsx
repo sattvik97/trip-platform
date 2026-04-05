@@ -45,7 +45,7 @@ function OrganizerLoginInner() {
       const response = await loginOrganizer({ email, password });
       login(response.access_token);
       authLogin(response.access_token, email, "organizer");
-      router.push("/organizer/dashboard");
+      router.push("/organizer/overview");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {

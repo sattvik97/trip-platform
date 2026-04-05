@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, Field
 
@@ -64,20 +64,3 @@ class PaymentEventResponse(BaseModel):
 
     class Config:
         from_attributes = True
-
-
-class PaginatedPaymentsResponse(BaseModel):
-    items: List[PaymentResponse]
-    total: int
-    page: int
-    page_size: int
-
-
-class RefundRequest(BaseModel):
-    reason: Optional[str] = None
-
-
-class RefundResponse(BaseModel):
-    accepted: bool
-    message: str
-    payment: Optional[PaymentResponse] = None

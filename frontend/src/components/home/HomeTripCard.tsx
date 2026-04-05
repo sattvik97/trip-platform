@@ -29,7 +29,6 @@ export function HomeTripCard({
   price,
   categoryBadge,
   imageUrl,
-  organizerId,
   tripSlug,
 }: HomeTripCardProps) {
   const [imageError, setImageError] = useState(false);
@@ -73,7 +72,7 @@ export function HomeTripCard({
         </h3>
         {price !== undefined && (
           <div className="mb-3">
-            <span className="text-2xl font-bold text-gray-900">₹{price.toLocaleString()}</span>
+            <span className="text-2xl font-bold text-gray-900">Rs. {price.toLocaleString()}</span>
             <span className="text-sm text-gray-500 ml-1">per person</span>
           </div>
         )}
@@ -121,3 +120,4 @@ export function HomeTripCard({
     </Link>
   );
 }
+

@@ -71,7 +71,7 @@ export function TripImageUploader({
     try {
       setIsUploading(true);
       setError("");
-      const newImage = await uploadTripImage(tripId, file);
+      await uploadTripImage(tripId, file);
       await loadImages();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to upload image");
@@ -321,4 +321,3 @@ export function TripImageUploader({
     </div>
   );
 }
-

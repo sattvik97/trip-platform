@@ -22,9 +22,6 @@ from app.crud.trip import (
 )
 from app.crud.availability import get_available_seats
 from app.core.auth import get_current_end_user, require_organizer
-from app.payments.deps import get_payment_provider
-from app.payments.providers import PaymentProvider
-from app.services.payment_service import PaymentService
 from app.models.booking import Booking, BookingStatus
 from app.models.end_user import EndUser
 from app.models.organizer import Organizer
@@ -280,12 +277,11 @@ def create_booking_request(
     payload: BookingRequest,
     db: Session = Depends(get_db),
     current_user: EndUser = Depends(get_current_end_user),
-    provider: PaymentProvider = Depends(get_payment_provider),
 ):
     """
     Create a booking request for a trip.
     Requires user authentication.
-    Creates a booking with status = PENDING.
+    Creates a booking with status = REVIEW_PENDING.
     """
     # Get trip
     trip = get_trip_by_id(db, trip_id)
@@ -349,14 +345,18 @@ def create_booking_request(
             detail="Total price calculation is incorrect"
         )
     
-    # Check for duplicate PENDING booking by the same user for the same trip
+    # Prevent duplicate active bookings for the same trip.
     from app.crud.booking import get_user_booking_for_trip
     existing_booking = get_user_booking_for_trip(db, current_user.id, trip_id)
     
-    if existing_booking and existing_booking.status == BookingStatus.PENDING:
+    if existing_booking and existing_booking.status in (
+        BookingStatus.REVIEW_PENDING,
+        BookingStatus.PAYMENT_PENDING,
+        BookingStatus.CONFIRMED,
+    ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You already have a pending booking request for this trip"
+            detail="You already have an active booking for this trip"
         )
     
     # Convert traveler details to JSONB format
@@ -375,21 +375,11 @@ def create_booking_request(
             detail="Trip not found",
         )
 
-    now = datetime.now(timezone.utc)
-    db.query(Booking).filter(
-        Booking.trip_id == trip_id,
-        Booking.status == BookingStatus.PENDING,
-        Booking.expires_at < now,
-    ).update(
-        {Booking.status: BookingStatus.EXPIRED},
-        synchronize_session=False,
-    )
-
     held_seats = (
         db.query(func.coalesce(func.sum(Booking.seats_booked), 0))
         .filter(
             Booking.trip_id == trip_id,
-            Booking.status.in_([BookingStatus.PENDING, BookingStatus.CONFIRMED]),
+            Booking.status.in_([BookingStatus.PAYMENT_PENDING, BookingStatus.CONFIRMED]),
         )
         .scalar()
     )
@@ -399,16 +389,15 @@ def create_booking_request(
             detail="Not enough seats available",
         )
 
-    # Create booking with a payment hold window.
-    hold_expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
+    # Create review-stage booking. Inventory is only held after organizer approval.
     booking = Booking(
         trip_id=trip_id,
         user_id=current_user.id,
         seats_booked=payload.num_travelers,
         amount_snapshot=locked_trip.price * payload.num_travelers,
         source="user",
-        status=BookingStatus.PENDING,
-        expires_at=hold_expires_at,
+        status=BookingStatus.REVIEW_PENDING,
+        expires_at=None,
         num_travelers=payload.num_travelers,
         traveler_details=traveler_details_json,
         contact_name=payload.contact_name,
@@ -422,17 +411,6 @@ def create_booking_request(
     db.add(booking)
     db.commit()
     db.refresh(booking)
-
-    try:
-        payment_service = PaymentService(db, provider)
-        payment_service.create_payment(booking_id=booking.id, user_id=current_user.id)
-    except HTTPException as exc:
-        # Booking hold is already committed; user can start or retry payment from confirmation.
-        if exc.status_code >= 500:
-            raise
-    except Exception:
-        # Provider not fully configured (e.g. Razorpay order API); booking remains valid.
-        pass
 
     return {
         "message": "Booking request submitted successfully",
