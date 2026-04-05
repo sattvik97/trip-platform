@@ -1,14 +1,23 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+export default async function UserLoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const query = new URLSearchParams();
 
-export default function UserLoginPage() {
-  const router = useRouter();
-  
-  useEffect(() => {
-    router.replace("/login");
-  }, [router]);
+  Object.entries(params).forEach(([key, value]) => {
+    if (Array.isArray(value)) {
+      value.forEach((item) => query.append(key, item));
+      return;
+    }
+    if (typeof value === "string" && value.length > 0) {
+      query.set(key, value);
+    }
+  });
 
-  return null;
+  const suffix = query.toString();
+  redirect(suffix ? `/login?${suffix}` : "/login");
 }

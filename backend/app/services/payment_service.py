@@ -11,6 +11,7 @@ from app.models.booking import Booking, BookingStatus
 from app.models.payment import Payment, PaymentStatus
 from app.models.payment_event import PaymentEvent
 from app.payments.providers import ParsedWebhook, PaymentProvider
+from app.services.organizer_finance import sync_payment_to_ledger
 
 logger = logging.getLogger(__name__)
 
@@ -64,12 +65,17 @@ class PaymentService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Booking is already confirmed",
                 )
-            if booking.status != BookingStatus.PENDING:
+            if booking.status == BookingStatus.REVIEW_PENDING:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Booking is awaiting organizer approval",
+                )
+            if booking.status != BookingStatus.PAYMENT_PENDING:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Cannot create payment for booking in {booking.status} state",
                 )
-            if booking.expires_at < now:
+            if booking.expires_at and booking.expires_at < now:
                 booking.status = BookingStatus.EXPIRED
                 self.db.commit()
                 self.db.refresh(booking)
@@ -77,6 +83,18 @@ class PaymentService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Booking has expired",
                 )
+
+            latest_open_attempt = (
+                self.db.query(Payment)
+                .filter(
+                    Payment.booking_id == booking.id,
+                    Payment.status.in_([PaymentStatus.ORDER_CREATED, PaymentStatus.PENDING]),
+                )
+                .order_by(Payment.created_at.desc())
+                .first()
+            )
+            if latest_open_attempt:
+                return latest_open_attempt, self._order_payload_for_payment(latest_open_attempt)
 
             order = self.provider.create_order(
                 booking_id=booking.id,
@@ -143,7 +161,7 @@ class PaymentService:
         try:
             payment = (
                 self.db.query(Payment)
-                .options(joinedload(Payment.booking))
+                .options(joinedload(Payment.booking).joinedload(Booking.trip))
                 .filter(Payment.id == payment_id)
                 .with_for_update()
                 .first()
@@ -163,7 +181,7 @@ class PaymentService:
                     detail="You do not have permission to verify this payment",
                 )
 
-            if booking.status == BookingStatus.PENDING and booking.expires_at < now:
+            if booking.status == BookingStatus.PAYMENT_PENDING and booking.expires_at and booking.expires_at < now:
                 booking.status = BookingStatus.EXPIRED
                 payment.status = PaymentStatus.FAILED
                 self._record_event(
@@ -177,7 +195,12 @@ class PaymentService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Booking has expired",
                 )
-            if booking.status not in (BookingStatus.PENDING, BookingStatus.CONFIRMED):
+            if booking.status == BookingStatus.REVIEW_PENDING:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Booking is awaiting organizer approval",
+                )
+            if booking.status not in (BookingStatus.PAYMENT_PENDING, BookingStatus.CONFIRMED):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Cannot verify payment for booking in {booking.status} state",
@@ -207,8 +230,10 @@ class PaymentService:
                 payment.provider_payment_id = provider_payment_id or payment.provider_payment_id
                 payment.provider_signature = provider_signature
                 payment.raw_provider_response = payload
-                if booking.status == BookingStatus.PENDING:
+                if booking.status == BookingStatus.PAYMENT_PENDING:
                     booking.status = BookingStatus.CONFIRMED
+                    booking.expires_at = None
+                sync_payment_to_ledger(self.db, payment)
             else:
                 payment.status = PaymentStatus.FAILED
                 payment.provider_signature = provider_signature
@@ -288,8 +313,11 @@ class PaymentService:
             payment.provider_signature = parsed.signature
             payment.raw_provider_response = parsed.raw_payload
 
-            if target_status == PaymentStatus.SUCCESS and payment.booking.status == BookingStatus.PENDING:
+            if target_status == PaymentStatus.SUCCESS and payment.booking.status == BookingStatus.PAYMENT_PENDING:
                 payment.booking.status = BookingStatus.CONFIRMED
+                payment.booking.expires_at = None
+            if target_status in (PaymentStatus.SUCCESS, PaymentStatus.REFUNDED):
+                sync_payment_to_ledger(self.db, payment)
 
             self.db.commit()
             self.db.refresh(payment)
@@ -311,7 +339,7 @@ class PaymentService:
             ) from exc
 
     def _find_payment_for_webhook(self, parsed: ParsedWebhook) -> Optional[Payment]:
-        query = self.db.query(Payment).options(joinedload(Payment.booking))
+        query = self.db.query(Payment).options(joinedload(Payment.booking).joinedload(Booking.trip))
         payment = None
         if parsed.provider_order_id:
             payment = (
@@ -336,63 +364,15 @@ class PaymentService:
             )
         )
 
-    def request_refund(
-        self,
-        *,
-        payment_id: int,
-        organizer_id: str,
-        reason: Optional[str] = None,
-    ) -> Payment:
-        """Mark a successful payment as refunded (organizer scope enforced via trip ownership)."""
-        payment = (
-            self.db.query(Payment)
-            .options(joinedload(Payment.booking).joinedload(Booking.trip))
-            .filter(Payment.id == payment_id)
-            .with_for_update()
-            .first()
-        )
-        if not payment:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Payment not found")
-
-        booking = payment.booking
-        if not booking:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Payment booking relation is missing",
-            )
-        trip = booking.trip
-        if not trip or trip.organizer_id != organizer_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You do not have permission to refund this payment",
-            )
-
-        if payment.status == PaymentStatus.REFUNDED:
-            self.db.refresh(payment)
-            return payment
-
-        if payment.status != PaymentStatus.SUCCESS:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Only successful payments can be refunded",
-            )
-
-        payment.status = PaymentStatus.REFUNDED
-        self._record_event(
-            payment=payment,
-            event_type="MANUAL_REFUND",
-            payload={"reason": reason or "", "provider": self.provider.name},
-        )
-        try:
-            self.db.commit()
-            self.db.refresh(payment)
-            return payment
-        except Exception as exc:
-            self.db.rollback()
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to record refund",
-            ) from exc
+    @staticmethod
+    def _order_payload_for_payment(payment: Payment) -> Dict[str, Any]:
+        raw = payment.raw_provider_response if isinstance(payment.raw_provider_response, dict) else {}
+        return {
+            "order_id": raw.get("order_id") or payment.provider_order_id,
+            "amount": raw.get("amount") or payment.amount,
+            "currency": raw.get("currency") or payment.currency,
+            "provider": payment.provider,
+        }
 
     @staticmethod
     def _map_status_hint(status_hint: Optional[str]) -> Optional[PaymentStatus]:

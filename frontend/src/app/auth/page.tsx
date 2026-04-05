@@ -1,10 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Header } from "@/src/components/layout/Header";
 import { Footer } from "@/src/components/layout/Footer";
 
 export default function AuthIntentPage() {
+  const searchParams = useSearchParams();
+  const nextPath = (() => {
+    const candidate = searchParams.get("next") || "/";
+    return candidate.startsWith("/") ? candidate : "/";
+  })();
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
@@ -55,13 +62,13 @@ export default function AuthIntentPage() {
               </div>
               <div className="space-y-3">
                 <Link
-                  href="/login"
+                  href={`/login?next=${encodeURIComponent(nextPath)}`}
                   className="block w-full text-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
                 >
                   Continue as Traveler
                 </Link>
                 <Link
-                  href="/register"
+                  href={`/register?next=${encodeURIComponent(nextPath)}`}
                   className="block w-full text-center py-2 px-4 text-sm font-medium text-indigo-600 hover:text-indigo-500 transition-colors"
                 >
                   New here? Register

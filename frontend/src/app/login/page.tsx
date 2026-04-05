@@ -33,6 +33,11 @@ function LoginInner() {
     }
   }, [searchParams]);
 
+  const nextPath = (() => {
+    const candidate = searchParams.get("next") || "/";
+    return candidate.startsWith("/") ? candidate : "/";
+  })();
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
@@ -42,7 +47,7 @@ function LoginInner() {
       const response = await loginUserAPI({ email, password });
       loginUser(response.access_token);
       authLogin(response.access_token, email, "user");
-      router.push("/");
+      router.push(nextPath);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
@@ -66,7 +71,7 @@ function LoginInner() {
               <p className="text-gray-600">
                 Don&apos;t have an account?{" "}
                 <Link
-                  href="/register"
+                  href={`/register?next=${encodeURIComponent(nextPath)}`}
                   className="font-medium text-indigo-600 hover:text-indigo-500"
                 >
                   Create one here

@@ -5,7 +5,6 @@ interface AuthBannerProps {
 
 export function AuthBanner({ role, mode }: AuthBannerProps) {
   const isUser = role === "user";
-  const isLogin = mode === "login";
 
   const userContent = {
     login: {

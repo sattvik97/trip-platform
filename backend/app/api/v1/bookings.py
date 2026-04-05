@@ -5,7 +5,7 @@ from pydantic import BaseModel, conint
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.core.auth import get_current_end_user
+from app.core.auth import get_current_end_user, require_organizer
 from app.db.deps import get_db
 from app.models.booking import Booking, BookingStatus
 from app.models.end_user import EndUser
@@ -81,6 +81,10 @@ def create_booking(
 
 class OfflineBookingRequest(BaseModel):
     seats: conint(gt=0)
+    contact_name: str | None = None
+    contact_phone: str | None = None
+    contact_email: str | None = None
+    organizer_note: str | None = None
 
 
 @router.post("/trips/{trip_id}/offline-booking")
@@ -88,16 +92,20 @@ def add_offline_booking(
     trip_id: str,
     payload: OfflineBookingRequest,
     db: Session = Depends(get_db),
+    organizer_id: str = Depends(require_organizer),
 ):
     now = datetime.now(timezone.utc)
 
     trip = db.query(Trip).filter(Trip.id == trip_id).with_for_update().first()
     if not trip:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Trip not found")
+    if trip.organizer_id != organizer_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed")
 
     db.query(Booking).filter(
         Booking.trip_id == trip_id,
-        Booking.status == BookingStatus.PENDING,
+        Booking.status == BookingStatus.PAYMENT_PENDING,
+        Booking.expires_at.is_not(None),
         Booking.expires_at < now,
     ).update(
         {Booking.status: BookingStatus.EXPIRED},
@@ -108,7 +116,7 @@ def add_offline_booking(
         db.query(func.coalesce(func.sum(Booking.seats_booked), 0))
         .filter(
             Booking.trip_id == trip_id,
-            Booking.status.in_([BookingStatus.PENDING, BookingStatus.CONFIRMED]),
+            Booking.status.in_([BookingStatus.PAYMENT_PENDING, BookingStatus.CONFIRMED]),
         )
         .scalar()
     )
@@ -123,7 +131,16 @@ def add_offline_booking(
         status=BookingStatus.CONFIRMED,
         amount_snapshot=trip.price * payload.seats,
         currency="INR",
-        expires_at=now + timedelta(minutes=10),
+        expires_at=None,
+        num_travelers=payload.seats,
+        contact_name=payload.contact_name,
+        contact_phone=payload.contact_phone,
+        contact_email=payload.contact_email,
+        price_per_person=trip.price,
+        total_price=trip.price * payload.seats,
+        organizer_note=payload.organizer_note,
+        decision_reason="Offline booking recorded by organizer",
+        decision_at=now,
     )
     db.add(booking)
     db.commit()

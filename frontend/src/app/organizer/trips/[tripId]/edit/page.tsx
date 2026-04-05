@@ -41,6 +41,11 @@ export default function EditTripPage() {
   const [price, setPrice] = useState("");
   const [totalSeats, setTotalSeats] = useState("");
   const [description, setDescription] = useState("");
+  const [meetingPoint, setMeetingPoint] = useState("");
+  const [difficultyLevel, setDifficultyLevel] = useState("");
+  const [cancellationPolicy, setCancellationPolicy] = useState("");
+  const [inclusionsText, setInclusionsText] = useState("");
+  const [exclusionsText, setExclusionsText] = useState("");
   const [selectedTags, setSelectedTags] = useState<TripTag[]>([]);
   const [itinerary, setItinerary] = useState<ItineraryItem[]>([]);
   const [error, setError] = useState("");
@@ -55,7 +60,7 @@ export default function EditTripPage() {
     if (!startDate || !endDate) return 0;
     const start = new Date(startDate);
     const end = new Date(endDate);
-    if (start >= end) return 0;
+    if (start > end) return 0;
     const diffTime = Math.abs(end.getTime() - start.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
     return diffDays;
@@ -89,6 +94,11 @@ export default function EditTripPage() {
         setPrice(trip.price.toString());
         setTotalSeats(trip.total_seats.toString());
         setDescription(trip.description || "");
+        setMeetingPoint(trip.meeting_point || "");
+        setDifficultyLevel(trip.difficulty_level || "");
+        setCancellationPolicy(trip.cancellation_policy || "");
+        setInclusionsText((trip.inclusions || []).join("\n"));
+        setExclusionsText((trip.exclusions || []).join("\n"));
         setSelectedTags((trip.tags || []) as TripTag[]);
         setItinerary(trip.itinerary || []);
         setTripStatus(trip.status);
@@ -134,6 +144,12 @@ export default function EditTripPage() {
     );
   };
 
+  const parseListInput = (value: string) =>
+    value
+      .split(/\n|,/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
@@ -157,8 +173,8 @@ export default function EditTripPage() {
       return;
     }
 
-    if (new Date(startDate) >= new Date(endDate)) {
-      setError("End date must be after start date");
+    if (new Date(startDate) > new Date(endDate)) {
+      setError("End date cannot be earlier than start date");
       return;
     }
 
@@ -194,12 +210,17 @@ export default function EditTripPage() {
         start_date: startDate,
         end_date: endDate,
         price: priceNum,
+        meeting_point: meetingPoint || undefined,
+        difficulty_level: difficultyLevel || undefined,
+        cancellation_policy: cancellationPolicy || undefined,
+        inclusions: parseListInput(inclusionsText),
+        exclusions: parseListInput(exclusionsText),
         total_seats: seatsNum,
         description: description || undefined,
         tags: selectedTags.length > 0 ? selectedTags : undefined,
         itinerary: itinerary.length > 0 ? itinerary : undefined,
       });
-      router.push("/organizer/dashboard");
+      router.push("/organizer/trips");
     } catch (err) {
       if (err instanceof Error && err.message === "Authentication failed") {
         router.push("/organizer/login");
@@ -379,6 +400,94 @@ export default function EditTripPage() {
               </div>
             </div>
 
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <label
+                  htmlFor="meeting_point"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Meeting Point
+                </label>
+                <input
+                  type="text"
+                  id="meeting_point"
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  value={meetingPoint}
+                  onChange={(e) => setMeetingPoint(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="difficulty_level"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Difficulty Level
+                </label>
+                <select
+                  id="difficulty_level"
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  value={difficultyLevel}
+                  onChange={(e) => setDifficultyLevel(e.target.value)}
+                >
+                  <option value="">Select difficulty</option>
+                  <option value="EASY">Easy</option>
+                  <option value="MODERATE">Moderate</option>
+                  <option value="CHALLENGING">Challenging</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="cancellation_policy"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Cancellation Policy
+              </label>
+              <textarea
+                id="cancellation_policy"
+                rows={4}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                value={cancellationPolicy}
+                onChange={(e) => setCancellationPolicy(e.target.value)}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <label
+                  htmlFor="inclusions"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Inclusions
+                </label>
+                <textarea
+                  id="inclusions"
+                  rows={5}
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  value={inclusionsText}
+                  onChange={(e) => setInclusionsText(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="exclusions"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Exclusions
+                </label>
+                <textarea
+                  id="exclusions"
+                  rows={5}
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  value={exclusionsText}
+                  onChange={(e) => setExclusionsText(e.target.value)}
+                />
+              </div>
+            </div>
+
             {/* Tags Section */}
             <div>
               <label
@@ -523,7 +632,7 @@ export default function EditTripPage() {
             <div className="flex justify-end gap-3">
               <button
                 type="button"
-                onClick={() => router.push("/organizer/dashboard")}
+                onClick={() => router.push("/organizer/trips")}
                 className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 Cancel
@@ -542,4 +651,3 @@ export default function EditTripPage() {
     </div>
   );
 }
-

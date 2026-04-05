@@ -89,7 +89,7 @@ export function deriveTripHighlights(trip: Trip): string[] {
   if (trip.available_seats <= 3) {
     highlights.add(`Only ${formatSeatCopy(trip.available_seats)} with live seat verification`);
   } else {
-    highlights.add(`${formatSeatCopy(trip.available_seats)} verified from approved bookings`);
+    highlights.add(`${formatSeatCopy(trip.available_seats)} verified from approved holds and confirmed bookings`);
   }
 
   if (trip.itinerary && trip.itinerary.length > 0) {

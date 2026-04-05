@@ -106,7 +106,7 @@ export function SearchSummaryHeader({
   const subtext =
     subtextParts.length > 0
       ? subtextParts.join(" • ")
-      : "Live seat counts are based on approved bookings.";
+      : "Live seat counts reflect approved payment holds and confirmed bookings.";
 
   return (
     <div className="mb-6 rounded-[2rem] border border-white/80 bg-white/80 p-6 shadow-lg shadow-slate-950/5">

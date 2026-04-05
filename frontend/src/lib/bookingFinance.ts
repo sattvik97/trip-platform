@@ -1,30 +1,42 @@
 import type { PaymentAttempt, PaymentStatus } from "./api/payments";
 
-export type BookingStatus = "PENDING" | "CONFIRMED" | "EXPIRED" | "CANCELLED" | string;
+export type BookingStatus =
+  | "REVIEW_PENDING"
+  | "PAYMENT_PENDING"
+  | "CONFIRMED"
+  | "EXPIRED"
+  | "CANCELLED"
+  | string;
 
 export function normalizeBookingStatus(status: string | null | undefined): BookingStatus {
   const normalized = (status || "").toUpperCase();
   if (normalized === "APPROVED") {
-    return "CONFIRMED";
+    return "PAYMENT_PENDING";
+  }
+  if (normalized === "PENDING") {
+    return "PAYMENT_PENDING";
   }
   if (normalized === "REJECTED") {
     return "CANCELLED";
   }
   if (!normalized) {
-    return "PENDING";
+    return "REVIEW_PENDING";
   }
   return normalized;
 }
 
 export function bookingStatusClass(status: BookingStatus): string {
   switch (normalizeBookingStatus(status)) {
+    case "REVIEW_PENDING":
+      return "bg-amber-100 text-amber-800 border border-amber-200";
+    case "PAYMENT_PENDING":
+      return "bg-sky-100 text-sky-800 border border-sky-200";
     case "CONFIRMED":
       return "bg-emerald-100 text-emerald-800 border border-emerald-200";
     case "EXPIRED":
       return "bg-slate-100 text-slate-700 border border-slate-200";
     case "CANCELLED":
       return "bg-rose-100 text-rose-800 border border-rose-200";
-    case "PENDING":
     default:
       return "bg-amber-100 text-amber-800 border border-amber-200";
   }
@@ -106,7 +118,7 @@ export function canInitiatePaymentAttempt(params: {
   latestPaymentStatus?: string | null;
 }): boolean {
   const normalizedBookingStatus = normalizeBookingStatus(params.bookingStatus);
-  if (normalizedBookingStatus !== "PENDING") {
+  if (normalizedBookingStatus !== "PAYMENT_PENDING") {
     return false;
   }
   if (isBookingExpired(normalizedBookingStatus, params.expiresAt)) {
@@ -126,7 +138,7 @@ export function canCompletePaymentVerify(params: {
   latestPaymentStatus?: string | null;
 }): boolean {
   const normalizedBookingStatus = normalizeBookingStatus(params.bookingStatus);
-  if (normalizedBookingStatus !== "PENDING") {
+  if (normalizedBookingStatus !== "PAYMENT_PENDING") {
     return false;
   }
   if (isBookingExpired(normalizedBookingStatus, params.expiresAt)) {

@@ -64,9 +64,9 @@ export default async function TripDetailPage({
   const fitNotes = deriveTripFitNotes(trip);
   const itinerary: Array<{ day: number; title: string; description: string }> = trip.itinerary || [];
   const commitments = [
-    "Live seat counts stay tied to approved bookings.",
-    "Request-based booking helps the organizer curate the right group.",
-    "Bookings close automatically once the trip is too close to departure.",
+    "Live seat counts reflect approved payment holds and confirmed bookings.",
+    "Request-based booking lets the organizer approve the right group before payment.",
+    "Approved payment windows expire automatically if checkout is not completed in time.",
   ];
 
   return (
@@ -246,7 +246,7 @@ export default async function TripDetailPage({
                   </p>
                   <div className="mt-4 space-y-3 text-sm leading-7 text-slate-700">
                     <p>This is an organizer-owned trip, so the person reviewing your request is accountable for the experience.</p>
-                    <p>Availability is derived from confirmed bookings, which keeps the seat count more trustworthy than a hand-updated counter.</p>
+                    <p>Availability is derived from approved payment holds and confirmed bookings, which keeps the seat count more trustworthy than a hand-updated counter.</p>
                     <p>If this trip is right for you, requesting early gives the organizer more time to review and confirm your place.</p>
                   </div>
                 </div>

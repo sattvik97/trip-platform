@@ -82,7 +82,7 @@ export default function BookingConfirmationPage() {
 
   useEffect(() => {
     if (!isAuthenticated || role !== "user") {
-      router.push("/user/login");
+      router.push(`/login?next=${encodeURIComponent(`/bookings/${bookingId}/confirmation`)}`);
       return;
     }
 
@@ -94,7 +94,7 @@ export default function BookingConfirmationPage() {
         setBooking(bookingData);
       } catch (err) {
         if (err instanceof Error && err.message === "Authentication failed") {
-          router.push("/user/login");
+          router.push(`/login?next=${encodeURIComponent(`/bookings/${bookingId}/confirmation`)}`);
           return;
         }
         setError(err instanceof Error ? err.message : "Failed to load booking");
@@ -108,8 +108,10 @@ export default function BookingConfirmationPage() {
     }
   }, [bookingId, isAuthenticated, role, router]);
 
-  const normalizedBookingStatus = normalizeBookingStatus(booking?.status || "PENDING");
+  const normalizedBookingStatus = normalizeBookingStatus(booking?.status || "REVIEW_PENDING");
   const latestPaymentStatus = String(latestAttempt?.status || "NOT_INITIATED").toUpperCase();
+  const paymentStatusDisplay =
+    normalizedBookingStatus === "REVIEW_PENDING" ? "AWAITING_APPROVAL" : latestPaymentStatus;
   const bookingAmount = booking ? calculateBookingAmount(booking) : 0;
   const bookingCurrency = booking?.currency || "INR";
 
@@ -138,6 +140,9 @@ export default function BookingConfirmationPage() {
   const payDisabledReason = useMemo(() => {
     if (!booking) {
       return "Booking unavailable";
+    }
+    if (normalizedBookingStatus === "REVIEW_PENDING") {
+      return "Payment will unlock after the organizer approves your request";
     }
     if (normalizedBookingStatus === "CONFIRMED") {
       return "Payment completed";
@@ -224,25 +229,27 @@ export default function BookingConfirmationPage() {
     );
   }
 
-  const statusTitle =
-    normalizedBookingStatus === "CONFIRMED"
-      ? "Your spot is confirmed"
-      : normalizedBookingStatus === "EXPIRED"
-        ? "This booking expired"
-        : normalizedBookingStatus === "CANCELLED"
-          ? "This booking has an update"
-          : "Your booking is still active";
+  let statusTitle = "Your booking is still active";
+  let statusMessage = verifyEnabled
+    ? "Complete the current payment step to keep this booking moving."
+    : "Track organizer decisions, payment progress, and booking timing from here.";
 
-  const statusMessage =
-    normalizedBookingStatus === "CONFIRMED"
-      ? "Payment and booking details are in sync, and your place is locked in."
-      : normalizedBookingStatus === "EXPIRED"
-        ? "The hold window ended before checkout was completed."
-        : normalizedBookingStatus === "CANCELLED"
-          ? "This request was cancelled or not approved. You can review the details below."
-          : verifyEnabled
-            ? "Complete the current payment step to keep this booking moving."
-            : "Track organizer decisions, payment progress, and booking timing from here.";
+  if (normalizedBookingStatus === "CONFIRMED") {
+    statusTitle = "Your spot is confirmed";
+    statusMessage = "Payment and booking details are in sync, and your place is locked in.";
+  } else if (normalizedBookingStatus === "REVIEW_PENDING") {
+    statusTitle = "Your request is under review";
+    statusMessage = "The organizer still needs to approve this request before payment starts.";
+  } else if (normalizedBookingStatus === "PAYMENT_PENDING") {
+    statusTitle = "Your payment window is active";
+    statusMessage = "Complete payment before the hold window ends to keep this seat reserved.";
+  } else if (normalizedBookingStatus === "EXPIRED") {
+    statusTitle = "This booking expired";
+    statusMessage = "The hold window ended before checkout was completed.";
+  } else if (normalizedBookingStatus === "CANCELLED") {
+    statusTitle = "This booking has an update";
+    statusMessage = "This request was cancelled or not approved. You can review the details below.";
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f5efe6]">
@@ -260,7 +267,9 @@ export default function BookingConfirmationPage() {
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <BookingStatusBadge status={booking.status} />
-                <PaymentStatusBadge status={latestPaymentStatus} />
+                {normalizedBookingStatus !== "REVIEW_PENDING" && (
+                  <PaymentStatusBadge status={latestPaymentStatus} />
+                )}
                 <ExpiryCountdown status={booking.status} expiresAt={booking.expires_at} />
               </div>
             </div>
@@ -316,7 +325,7 @@ export default function BookingConfirmationPage() {
                   </div>
                   <div>
                     <p className="text-xs uppercase tracking-wide text-slate-500">Latest payment</p>
-                    <p className="mt-1 text-lg font-semibold text-slate-950">{latestPaymentStatus}</p>
+                    <p className="mt-1 text-lg font-semibold text-slate-950">{paymentStatusDisplay}</p>
                   </div>
                   <div>
                     <p className="text-xs uppercase tracking-wide text-slate-500">Primary contact</p>
@@ -360,7 +369,9 @@ export default function BookingConfirmationPage() {
               <div className="sticky top-24 rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-lg shadow-slate-950/5">
                 <h2 className="text-lg font-semibold text-slate-950">Checkout</h2>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Keep this booking active and complete payment before the hold window ends.
+                  {normalizedBookingStatus === "REVIEW_PENDING"
+                    ? "Payment stays locked until the organizer approves your request."
+                    : "Keep this booking active and complete payment before the hold window ends."}
                 </p>
 
                 <div className="mt-5 rounded-2xl bg-[#f7f1e8] p-4">
@@ -369,7 +380,7 @@ export default function BookingConfirmationPage() {
                     {formatAmount(bookingAmount, bookingCurrency)}
                   </p>
                   <p className="mt-2 text-xs text-slate-500">
-                    Latest payment status: <span className="font-semibold">{latestPaymentStatus}</span>
+                    Latest payment status: <span className="font-semibold">{paymentStatusDisplay}</span>
                   </p>
                 </div>
 

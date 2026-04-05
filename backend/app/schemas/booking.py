@@ -36,9 +36,38 @@ class BookingResponse(BaseModel):
     price_per_person: Optional[int] = None
     total_price: Optional[int] = None
     currency: Optional[str] = None
+    organizer_note: Optional[str] = None
+    decision_reason: Optional[str] = None
+    decision_at: Optional[datetime] = None
     
     class Config:
         from_attributes = True
+
+
+class OrganizerBookingReviewRequest(BaseModel):
+    note: Optional[str] = None
+    reason: Optional[str] = None
+
+
+class OrganizerBulkBookingReviewRequest(BaseModel):
+    booking_ids: List[str]
+    action: str
+    note: Optional[str] = None
+    reason: Optional[str] = None
+
+
+class OrganizerBulkBookingReviewResponse(BaseModel):
+    processed: int
+    failed: int
+    items: List[BookingResponse]
+    errors: List[Dict[str, str]]
+
+
+class PaginatedOrganizerBookingsResponse(BaseModel):
+    items: List[BookingResponse]
+    total: int
+    page: int
+    page_size: int
 
 
 class BookingCreateRequest(BaseModel):

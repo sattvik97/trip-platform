@@ -2,7 +2,13 @@ import { getToken } from "../auth";
 import { getUserToken } from "../userAuth";
 import { buildApiUrl } from "./config";
 
-export type BookingStatus = "PENDING" | "CONFIRMED" | "EXPIRED" | "CANCELLED" | string;
+export type BookingStatus =
+  | "REVIEW_PENDING"
+  | "PAYMENT_PENDING"
+  | "CONFIRMED"
+  | "EXPIRED"
+  | "CANCELLED"
+  | string;
 export type PaymentStatus =
   | "NOT_INITIATED"
   | "ORDER_CREATED"
@@ -27,20 +33,6 @@ export interface PaymentAttempt {
   updated_at: string;
 }
 
-export interface PaymentEvent {
-  id: number;
-  payment_id: number;
-  event_type: string;
-  raw_payload: Record<string, unknown>;
-  created_at: string;
-}
-
-export interface RefundTriggerResponse {
-  accepted: boolean;
-  message: string;
-  payment?: PaymentAttempt | null;
-}
-
 export interface PaymentCreateResponse {
   payment: PaymentAttempt;
   order: {
@@ -49,13 +41,6 @@ export interface PaymentCreateResponse {
     currency: string;
     provider: string;
   };
-}
-
-export interface PaginatedPayments {
-  items: PaymentAttempt[];
-  total: number;
-  page: number;
-  page_size: number;
 }
 
 export interface PaymentQueryOptions {
@@ -128,31 +113,6 @@ function parsePaymentArrayPayload(payload: unknown): PaymentAttempt[] {
     return [];
   }
   return payload.map(normalizePaymentAttempt);
-}
-
-function parsePaymentEventsPayload(payload: unknown, paymentId: number): PaymentEvent[] {
-  const rows =
-    payload && typeof payload === "object" && "items" in (payload as object)
-      ? ((payload as { items?: unknown[] }).items || [])
-      : payload;
-
-  if (!Array.isArray(rows)) {
-    return [];
-  }
-
-  return rows.map((event) => {
-    const raw = (event as Record<string, unknown>) || {};
-    return {
-      id: Number(raw.id ?? 0),
-      payment_id: Number(raw.payment_id ?? paymentId),
-      event_type: String(raw.event_type ?? "UNKNOWN"),
-      raw_payload:
-        raw.raw_payload && typeof raw.raw_payload === "object"
-          ? (raw.raw_payload as Record<string, unknown>)
-          : {},
-      created_at: String(raw.created_at ?? ""),
-    };
-  });
 }
 
 function buildPaymentQuery(options: PaymentQueryOptions): string {
@@ -294,132 +254,5 @@ export async function createPaymentAttempt(bookingId: string): Promise<PaymentCr
       currency: data.order.currency,
       provider: data.order.provider,
     },
-  };
-}
-
-export async function getPaymentEvents(paymentId: number): Promise<PaymentEvent[]> {
-  const endpoints = [
-    `/api/v1/admin/payments/${paymentId}/events`,
-    `/api/v1/payments/${paymentId}/events`,
-  ];
-
-  for (const endpoint of endpoints) {
-    const response = await fetch(buildApiUrl(endpoint), {
-      method: "GET",
-      headers: getAuthHeaders(false),
-      cache: "no-store",
-    });
-
-    if (response.status === 404 || response.status === 405) {
-      continue;
-    }
-    if (!response.ok) {
-      const errorData = await parseJsonSafe<{ detail?: string }>(response);
-      throw new Error(errorData?.detail || `Failed to load payment events: ${response.statusText}`);
-    }
-
-    const payload = await parseJsonSafe<unknown>(response);
-    return parsePaymentEventsPayload(payload, paymentId);
-  }
-
-  return [];
-}
-
-export async function listAdminPayments(options: PaymentQueryOptions): Promise<PaginatedPayments> {
-  const query = buildPaymentQuery(options);
-  const endpoints = [`/api/v1/admin/payments${query}`, `/api/v1/payments${query}`];
-
-  for (const endpoint of endpoints) {
-    const response = await fetch(buildApiUrl(endpoint), {
-      method: "GET",
-      headers: getAuthHeaders(false),
-      cache: "no-store",
-    });
-
-    if (response.status === 404 || response.status === 405) {
-      continue;
-    }
-
-    if (!response.ok) {
-      const errorData = await parseJsonSafe<{ detail?: string }>(response);
-      throw new Error(errorData?.detail || `Failed to load admin payments: ${response.statusText}`);
-    }
-
-    const payload = await parseJsonSafe<unknown>(response);
-    if (payload && typeof payload === "object" && "items" in (payload as object)) {
-      const data = payload as {
-        items: unknown[];
-        total?: number;
-        page?: number;
-        page_size?: number;
-      };
-      return {
-        items: parsePaymentArrayPayload(data.items || []),
-        total: Number(data.total ?? 0),
-        page: Number(data.page ?? options.page ?? 1),
-        page_size: Number(data.page_size ?? options.page_size ?? 20),
-      };
-    }
-
-    const attempts = parsePaymentArrayPayload(payload);
-    return {
-      items: attempts,
-      total: attempts.length,
-      page: options.page ?? 1,
-      page_size: options.page_size ?? (attempts.length || 20),
-    };
-  }
-
-  return {
-    items: [],
-    total: 0,
-    page: options.page ?? 1,
-    page_size: options.page_size ?? 20,
-  };
-}
-
-export async function triggerManualRefund(
-  paymentId: number,
-  payload: { reason?: string } = {}
-): Promise<RefundTriggerResponse> {
-  const endpoints = [
-    `/api/v1/admin/payments/${paymentId}/refund`,
-    `/api/v1/payments/${paymentId}/refund`,
-  ];
-
-  for (const endpoint of endpoints) {
-    const response = await fetch(buildApiUrl(endpoint), {
-      method: "POST",
-      headers: getAuthHeaders(false),
-      body: JSON.stringify(payload),
-    });
-
-    if (response.status === 404 || response.status === 405) {
-      continue;
-    }
-
-    if (!response.ok) {
-      const errorData = await parseJsonSafe<{ detail?: string }>(response);
-      throw new Error(errorData?.detail || `Failed to trigger refund: ${response.statusText}`);
-    }
-
-    const data = await parseJsonSafe<unknown>(response);
-    const asObject = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
-    const paymentRaw =
-      asObject.payment && typeof asObject.payment === "object"
-        ? normalizePaymentAttempt(asObject.payment)
-        : null;
-
-    return {
-      accepted: true,
-      message: String(asObject.message ?? "Refund requested successfully"),
-      payment: paymentRaw,
-    };
-  }
-
-  return {
-    accepted: false,
-    message: "Refund endpoint is unavailable in this environment",
-    payment: null,
   };
 }

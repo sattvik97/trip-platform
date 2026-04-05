@@ -9,10 +9,15 @@ interface BookingStatusBannerProps {
 }
 
 const MESSAGES: Record<string, { title: string; body: string; tone: string }> = {
-  PENDING: {
-    title: "Your booking is still active",
-    body: "Track organizer confirmation and any payment steps from your booking hub.",
+  REVIEW_PENDING: {
+    title: "Your request is under review",
+    body: "The organizer still needs to approve this request before payment starts.",
     tone: "amber",
+  },
+  PAYMENT_PENDING: {
+    title: "Your payment window is active",
+    body: "Complete payment before the timer ends to lock in your spot.",
+    tone: "sky",
   },
   CONFIRMED: {
     title: "Your spot is confirmed",
@@ -33,6 +38,7 @@ const MESSAGES: Record<string, { title: string; body: string; tone: string }> = 
 
 const TONE_CLASSES: Record<string, string> = {
   amber: "border-amber-300 bg-amber-50 text-amber-900",
+  sky: "border-sky-300 bg-sky-50 text-sky-900",
   emerald: "border-emerald-300 bg-emerald-50 text-emerald-900",
   slate: "border-slate-300 bg-slate-50 text-slate-900",
   rose: "border-rose-300 bg-rose-50 text-rose-900",
@@ -40,7 +46,7 @@ const TONE_CLASSES: Record<string, string> = {
 
 export function BookingStatusBanner({ booking }: BookingStatusBannerProps) {
   const status = normalizeBookingStatus(booking.status);
-  const meta = MESSAGES[status] || MESSAGES.PENDING;
+  const meta = MESSAGES[status] || MESSAGES.REVIEW_PENDING;
   const toneClass = TONE_CLASSES[meta.tone] || TONE_CLASSES.amber;
 
   return (

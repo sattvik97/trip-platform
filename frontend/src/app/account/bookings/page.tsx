@@ -45,7 +45,7 @@ export default function MyBookingsPage() {
 
   useEffect(() => {
     if (!isAuthenticated || role !== "user" || !user) {
-      router.push("/user/login");
+      router.push(`/login?next=${encodeURIComponent("/account/bookings")}`);
       return;
     }
 
@@ -61,7 +61,7 @@ export default function MyBookingsPage() {
         setPaymentsByBooking(paymentMap);
       } catch (err) {
         if (err instanceof Error && err.message === "Authentication failed") {
-          router.push("/user/login");
+          router.push(`/login?next=${encodeURIComponent("/account/bookings")}`);
           return;
         }
         setError(err instanceof Error ? err.message : "Failed to load bookings");
@@ -101,7 +101,7 @@ export default function MyBookingsPage() {
               All your trip requests in one place
             </h1>
             <p className="mt-3 text-sm leading-6 text-slate-600">
-              Track organizer decisions, payment progress, and confirmed spots without jumping between pages.
+              Track organizer decisions, approved payment windows, and confirmed spots without jumping between pages.
             </p>
           </div>
 
@@ -133,41 +133,51 @@ export default function MyBookingsPage() {
                   href={`/bookings/${booking.id}/confirmation`}
                   className="block rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-lg shadow-slate-950/5 transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-950/8"
                 >
-                  <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-                    <div className="flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="text-2xl font-semibold text-slate-950">
-                          {booking.trip_title || "Trip"}
-                        </h2>
-                        <BookingStatusBadge status={booking.status} />
-                        <PaymentStatusBadge status={latestPaymentStatus} />
-                        {normalizeBookingStatus(booking.status) === "PENDING" && (
-                          <ExpiryCountdown status={booking.status} expiresAt={booking.expires_at} />
-                        )}
+                  {(() => {
+                    const normalizedStatus = normalizeBookingStatus(booking.status);
+
+                    return (
+                      <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+                        <div className="flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h2 className="text-2xl font-semibold text-slate-950">
+                              {booking.trip_title || "Trip"}
+                            </h2>
+                            <BookingStatusBadge status={booking.status} />
+                            {normalizedStatus !== "REVIEW_PENDING" && (
+                              <PaymentStatusBadge status={latestPaymentStatus} />
+                            )}
+                            {normalizedStatus === "PAYMENT_PENDING" && (
+                              <ExpiryCountdown status={booking.status} expiresAt={booking.expires_at} />
+                            )}
+                          </div>
+
+                          <p className="mt-2 text-sm text-slate-500">
+                            {booking.trip_destination || "Destination unavailable"}
+                          </p>
+
+                          {booking.trip_start_date && booking.trip_end_date && (
+                            <p className="mt-3 text-sm text-slate-600">
+                              {formatTripDateRange(booking.trip_start_date, booking.trip_end_date, "short")}
+                            </p>
+                          )}
+
+                          <div className="mt-4 grid gap-3 text-sm text-slate-600 sm:grid-cols-2 lg:grid-cols-4">
+                            <span>Requested: {formatDate(booking.created_at)}</span>
+                            <span>Seats: {booking.num_travelers || booking.seats_booked}</span>
+                            <span>
+                              Payment: {normalizedStatus === "REVIEW_PENDING" ? "Awaiting approval" : String(latestPaymentStatus).toUpperCase()}
+                            </span>
+                            <span>
+                              Total: {typeof booking.total_price === "number" ? formatPriceInr(booking.total_price) : "Pending"}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="text-sm font-medium text-slate-700">View details</div>
                       </div>
-
-                      <p className="mt-2 text-sm text-slate-500">
-                        {booking.trip_destination || "Destination unavailable"}
-                      </p>
-
-                      {booking.trip_start_date && booking.trip_end_date && (
-                        <p className="mt-3 text-sm text-slate-600">
-                          {formatTripDateRange(booking.trip_start_date, booking.trip_end_date, "short")}
-                        </p>
-                      )}
-
-                      <div className="mt-4 grid gap-3 text-sm text-slate-600 sm:grid-cols-2 lg:grid-cols-4">
-                        <span>Requested: {formatDate(booking.created_at)}</span>
-                        <span>Seats: {booking.num_travelers || booking.seats_booked}</span>
-                        <span>Payment: {String(latestPaymentStatus).toUpperCase()}</span>
-                        <span>
-                          Total: {typeof booking.total_price === "number" ? formatPriceInr(booking.total_price) : "Pending"}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="text-sm font-medium text-slate-700">View details</div>
-                  </div>
+                    );
+                  })()}
                 </Link>
               ))}
             </div>

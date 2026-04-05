@@ -6,6 +6,9 @@ class UserRegister(BaseModel):
     email: EmailStr
     password: str
     role: str  # "user" or "organizer"
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    website: Optional[str] = None
 
 
 class UserLogin(BaseModel):

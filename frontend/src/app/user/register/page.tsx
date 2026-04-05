@@ -1,14 +1,23 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+export default async function UserRegisterPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const query = new URLSearchParams();
 
-export default function UserRegisterPage() {
-  const router = useRouter();
-  
-  useEffect(() => {
-    router.replace("/register");
-  }, [router]);
+  Object.entries(params).forEach(([key, value]) => {
+    if (Array.isArray(value)) {
+      value.forEach((item) => query.append(key, item));
+      return;
+    }
+    if (typeof value === "string" && value.length > 0) {
+      query.set(key, value);
+    }
+  });
 
-  return null;
+  const suffix = query.toString();
+  redirect(suffix ? `/register?${suffix}` : "/register");
 }

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getUserBookingForTrip, UserBooking } from "@/src/lib/api/user";
 import { useAuth } from "@/src/contexts/AuthContext";
+import { normalizeBookingStatus } from "@/src/lib/bookingFinance";
 import { formatPriceInr, formatSeatCopy } from "@/src/lib/tripPresentation";
 
 interface RequestCardProps {
@@ -32,6 +33,7 @@ export function RequestCard({
   const userLoggedIn = isAuthenticated && role === "user";
   const [booking, setBooking] = useState<UserBooking | null>(null);
   const [isLoadingBooking, setIsLoadingBooking] = useState(true);
+  const loginTarget = `/login?next=${encodeURIComponent(`/trip/${tripSlug}/book`)}`;
 
   useEffect(() => {
     if (!userLoggedIn) {
@@ -56,11 +58,13 @@ export function RequestCard({
 
   const handleBookingRequest = () => {
     if (!userLoggedIn) {
-      router.push("/login");
+      router.push(loginTarget);
       return;
     }
 
-    if (booking) {
+    const normalized = booking ? normalizeBookingStatus(booking.status) : null;
+
+    if (booking && normalized && ["REVIEW_PENDING", "PAYMENT_PENDING", "CONFIRMED"].includes(normalized)) {
       router.push(`/bookings/${booking.id}/confirmation`);
       return;
     }
@@ -75,17 +79,23 @@ export function RequestCard({
     if (status && status !== "PUBLISHED") {
       return { text: "Requests unavailable", disabled: true };
     }
+    if (booking) {
+      const normalized = normalizeBookingStatus(booking.status);
+      if (normalized === "REVIEW_PENDING") {
+        return { text: "View your request", disabled: false };
+      }
+      if (normalized === "PAYMENT_PENDING") {
+        return { text: "Complete payment", disabled: false };
+      }
+      if (normalized === "CONFIRMED") {
+        return { text: "View confirmed booking", disabled: false };
+      }
+      if (normalized === "CANCELLED" || normalized === "EXPIRED") {
+        return { text: "Request again", disabled: false };
+      }
+    }
     if (seatsAvailable === 0) {
       return { text: "No verified seats left", disabled: true };
-    }
-    if (booking?.status === "PENDING") {
-      return { text: "View your request", disabled: false };
-    }
-    if (booking?.status === "APPROVED") {
-      return { text: "View confirmed booking", disabled: false };
-    }
-    if (booking?.status === "REJECTED") {
-      return { text: "View booking outcome", disabled: false };
     }
     if (!userLoggedIn) {
       return { text: "Sign in to request", disabled: false };
@@ -106,7 +116,7 @@ export function RequestCard({
           <span className="pb-1 text-sm text-white/70">per traveler</span>
         </div>
         <p className="mt-3 text-sm leading-6 text-white/70">
-          Verified seat counts come from approved bookings, so availability here stays grounded in reality.
+          Verified seat counts come from approved payment holds and confirmed bookings, so availability here stays grounded in reality.
         </p>
       </div>
 
@@ -117,7 +127,7 @@ export function RequestCard({
           </p>
           <p className="mt-2 text-lg font-semibold text-slate-950">{formatSeatCopy(seatsAvailable)}</p>
           <p className="mt-1 text-sm text-slate-600">
-            Pending requests do not reduce the visible seat count.
+            Approved payment holds and confirmed bookings reduce the visible seat count.
           </p>
         </div>
 
@@ -138,8 +148,8 @@ export function RequestCard({
           <p className="text-sm font-semibold text-slate-950">How this booking works</p>
           <div className="space-y-2 text-sm leading-6 text-slate-600">
             <p>1. You send a request with your traveler details.</p>
-            <p>2. The organizer reviews fit and seat availability.</p>
-            <p>3. You get a clear confirmed or declined outcome.</p>
+            <p>2. The organizer reviews fit and, if approved, opens a payment window.</p>
+            <p>3. Your seat is only held once that approved payment window is active.</p>
           </div>
         </div>
 
@@ -155,7 +165,7 @@ export function RequestCard({
             </button>
             <p className="text-center text-sm leading-6 text-slate-500">
               {userLoggedIn
-                ? "No payment is collected on this screen. You are sending a request, not completing checkout."
+                ? "No payment is collected yet. You only pay after the organizer approves your request."
                 : "Sign in as a traveler to request this trip and keep your booking history in one place."}
             </p>
           </>

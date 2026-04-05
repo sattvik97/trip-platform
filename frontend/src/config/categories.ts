@@ -1,4 +1,3 @@
-import type { Trip } from "@/src/types/trip";
 import { GetTripsParams } from "@/src/lib/api/trips";
 
 export type SectionType = "slider" | "grid";

@@ -53,11 +53,15 @@ def create_user(db: Session, user_data: UserRegister) -> User:
     organizer_id = None
     if role == UserRole.organizer:
         organizer_id = str(uuid.uuid4())
+        organizer_name = (user_data.name or user_data.email.split("@")[0]).strip()
 
         organizer = Organizer(
             id=organizer_id,
-            name="",  # Can be updated later
+            name=organizer_name,
             email=user_data.email,
+            phone=user_data.phone.strip() if user_data.phone else None,
+            website=user_data.website.strip() if user_data.website else None,
+            support_email=user_data.email,
         )
         db.add(organizer)
 

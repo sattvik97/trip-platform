@@ -8,13 +8,13 @@ from app.models.trip import Trip
 def get_available_seats(db: Session, trip_id: str) -> int:
     """
     Calculate available seats from bookings table.
-    Pending and confirmed bookings both hold inventory.
+    Only approved payment holds and confirmed bookings hold inventory.
     """
     booked = (
         db.query(func.coalesce(func.sum(Booking.seats_booked), 0))
         .filter(
             Booking.trip_id == trip_id,
-            Booking.status.in_([BookingStatus.PENDING, BookingStatus.CONFIRMED]),
+            Booking.status.in_([BookingStatus.PAYMENT_PENDING, BookingStatus.CONFIRMED]),
         )
         .scalar()
     )

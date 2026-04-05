@@ -26,7 +26,7 @@ export function ExpiryCountdown({ status, expiresAt, className = "" }: ExpiryCou
   const msRemaining = useMemo(() => getMsRemaining(expiresAt, now), [expiresAt, now]);
 
   useEffect(() => {
-    if (!expiresAt || normalizedStatus !== "PENDING") {
+    if (!expiresAt || normalizedStatus !== "PAYMENT_PENDING") {
       return;
     }
 
@@ -38,9 +38,9 @@ export function ExpiryCountdown({ status, expiresAt, className = "" }: ExpiryCou
 
   const label = useMemo(() => {
     if (!expiresAt) {
-      return "No expiry window";
+      return normalizedStatus === "REVIEW_PENDING" ? "Awaiting approval" : "No expiry window";
     }
-    if (normalizedStatus !== "PENDING") {
+    if (normalizedStatus !== "PAYMENT_PENDING") {
       return normalizedStatus === "CONFIRMED" ? "Booking confirmed" : "Booking closed";
     }
     if (isBookingExpired(status, expiresAt) || msRemaining <= 0) {
@@ -50,7 +50,7 @@ export function ExpiryCountdown({ status, expiresAt, className = "" }: ExpiryCou
   }, [expiresAt, msRemaining, normalizedStatus, status]);
 
   const colorClass =
-    normalizedStatus !== "PENDING"
+    normalizedStatus !== "PAYMENT_PENDING"
       ? "bg-slate-100 text-slate-700 border-slate-200"
       : msRemaining <= 60_000
       ? "bg-rose-100 text-rose-700 border-rose-200"

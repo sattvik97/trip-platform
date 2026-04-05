@@ -9,6 +9,8 @@ export interface UserLoginRequest {
 export interface UserRegisterRequest {
   email: string;
   password: string;
+  full_name?: string;
+  phone?: string;
 }
 
 export interface LoginResponse {
@@ -19,6 +21,8 @@ export interface LoginResponse {
 export interface RegisterResponse {
   id: string;
   email: string;
+  full_name?: string | null;
+  phone?: string | null;
 }
 
 export async function registerUser(
@@ -62,6 +66,18 @@ export async function loginUser(
   }
 
   return await response.json();
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  full_name: string | null;
+  phone: string | null;
+}
+
+export interface UpdateUserProfileRequest {
+  full_name?: string;
+  phone?: string;
 }
 
 export interface TravelerDetail {
@@ -184,6 +200,66 @@ export async function getUserBookingForTrip(tripId: string): Promise<UserBooking
     const errorData = await response.json().catch(() => ({}));
     throw new Error(
       errorData.detail || `Failed to fetch booking: ${response.statusText}`
+    );
+  }
+
+  return await response.json();
+}
+
+export async function getUserProfile(): Promise<UserProfile> {
+  const token = getUserToken();
+
+  if (!token) {
+    throw new Error("Not authenticated");
+  }
+
+  const response = await fetch(buildApiUrl("/api/v1/user/profile"), {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error("Authentication failed");
+    }
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.detail || `Failed to fetch profile: ${response.statusText}`
+    );
+  }
+
+  return await response.json();
+}
+
+export async function updateUserProfile(
+  payload: UpdateUserProfileRequest
+): Promise<UserProfile> {
+  const token = getUserToken();
+
+  if (!token) {
+    throw new Error("Not authenticated");
+  }
+
+  const response = await fetch(buildApiUrl("/api/v1/user/profile"), {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error("Authentication failed");
+    }
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.detail || `Failed to update profile: ${response.statusText}`
     );
   }
 

@@ -1,9 +1,10 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from datetime import date
 from sqlalchemy import func, or_, literal
 
+from app.crud.organizer import organizer_profile_gaps, get_organizer_by_id
 from app.models.trip import Trip, TripStatus
 from app.models.booking import Booking, BookingStatus
 from app.schemas.trip import TripCreate, TripUpdate
@@ -70,6 +71,10 @@ def create_trip(db: Session, trip: TripCreate) -> Trip:
     # Convert enum tags to strings for database storage
     if "tags" in trip_data and trip_data["tags"] is not None:
         trip_data["tags"] = [tag.value if hasattr(tag, 'value') else tag for tag in trip_data["tags"]]
+    if "inclusions" in trip_data and trip_data["inclusions"] is not None:
+        trip_data["inclusions"] = [item.strip() for item in trip_data["inclusions"] if str(item).strip()]
+    if "exclusions" in trip_data and trip_data["exclusions"] is not None:
+        trip_data["exclusions"] = [item.strip() for item in trip_data["exclusions"] if str(item).strip()]
 
     db_trip = Trip(
         **trip_data,
@@ -300,7 +305,7 @@ def search_trips(
             db.query(func.coalesce(func.sum(Booking.seats_booked), 0))
             .filter(
                 Booking.trip_id == Trip.id,
-                Booking.status.in_([BookingStatus.PENDING, BookingStatus.CONFIRMED])
+                Booking.status.in_([BookingStatus.PAYMENT_PENDING, BookingStatus.CONFIRMED])
             )
             .correlate(Trip)
             .as_scalar()
@@ -331,7 +336,7 @@ def list_organizer_trips(
     limit: int = 20,
     offset: int = 0,
     time_filter: Optional[str] = None,
-) -> List[Trip]:
+) -> Tuple[List[Trip], int]:
     """
     List trips owned by a specific organizer.
     time_filter: 'upcoming', 'ongoing', 'past', or None for all
@@ -352,22 +357,25 @@ def list_organizer_trips(
         query = query.filter(Trip.end_date < today)
     # If time_filter is None or empty, return all trips
     
+    total = query.count()
+    
     return (
         query
         .order_by(Trip.created_at.desc())
         .limit(limit)
         .offset(offset)
-        .all()
+        .all(),
+        total,
     )
 
 
 def get_booked_seats_count(db: Session, trip_id: str) -> int:
-    """Get count of seats held by pending or confirmed bookings for a trip."""
+    """Get count of seats held by approved payment holds or confirmed bookings for a trip."""
     booked = (
         db.query(func.coalesce(func.sum(Booking.seats_booked), 0))
         .filter(
             Booking.trip_id == trip_id,
-            Booking.status.in_([BookingStatus.PENDING, BookingStatus.CONFIRMED]),
+            Booking.status.in_([BookingStatus.PAYMENT_PENDING, BookingStatus.CONFIRMED]),
         )
         .scalar()
     )
@@ -418,6 +426,10 @@ def update_trip(
     # Convert enum tags to strings for database storage
     if "tags" in update_data and update_data["tags"] is not None:
         update_data["tags"] = [tag.value if hasattr(tag, 'value') else tag for tag in update_data["tags"]]
+    if "inclusions" in update_data and update_data["inclusions"] is not None:
+        update_data["inclusions"] = [item.strip() for item in update_data["inclusions"] if str(item).strip()]
+    if "exclusions" in update_data and update_data["exclusions"] is not None:
+        update_data["exclusions"] = [item.strip() for item in update_data["exclusions"] if str(item).strip()]
     
     for field, value in update_data.items():
         setattr(trip, field, value)
@@ -473,8 +485,6 @@ def publish_trip(db: Session, trip_id: str, organizer_id: str) -> Trip:
     Transition a trip from DRAFT to PUBLISHED.
     Enforces ownership, valid lifecycle transition, and minimum image requirement.
     """
-    from app.crud.trip_image import count_trip_images
-    
     trip = get_trip_by_id(db, trip_id)
 
     if not trip:
@@ -485,11 +495,10 @@ def publish_trip(db: Session, trip_id: str, organizer_id: str) -> Trip:
 
     if trip.status != TripStatus.DRAFT:
         raise ValueError("Only DRAFT trips can be published")
-    
-    # Check minimum image requirement
-    image_count = count_trip_images(db, trip_id)
-    if image_count == 0:
-        raise ValueError("Please add at least one image before publishing the trip")
+
+    blockers = get_trip_publish_blockers(db, trip)
+    if blockers:
+        raise ValueError("Trip cannot be published yet: " + "; ".join(blockers))
 
     trip.status = TripStatus.PUBLISHED
     db.commit()
@@ -539,6 +548,74 @@ def unarchive_trip(db: Session, trip_id: str, organizer_id: str) -> Trip:
     db.commit()
     db.refresh(trip)
     return trip
+
+
+def duplicate_trip(db: Session, trip_id: str, organizer_id: str) -> Trip:
+    trip = get_trip_by_id(db, trip_id)
+
+    if not trip:
+        raise FileNotFoundError("Trip not found")
+
+    if trip.organizer_id != organizer_id:
+        raise PermissionError("You do not have permission to duplicate this trip")
+
+    base_title = f"{trip.title} Copy"
+    duplicate_title = base_title
+    counter = 2
+    while (
+        db.query(Trip)
+        .filter(
+            Trip.organizer_id == organizer_id,
+            Trip.title == duplicate_title,
+            Trip.start_date == trip.start_date,
+        )
+        .first()
+    ):
+        duplicate_title = f"{base_title} {counter}"
+        counter += 1
+
+    duplicate_payload = TripCreate(
+        organizer_id=organizer_id,
+        title=duplicate_title,
+        description=trip.description,
+        destination=trip.destination,
+        price=trip.price,
+        meeting_point=trip.meeting_point,
+        difficulty_level=trip.difficulty_level,
+        cancellation_policy=trip.cancellation_policy,
+        inclusions=list(trip.inclusions or []),
+        exclusions=list(trip.exclusions or []),
+        start_date=trip.start_date,
+        end_date=trip.end_date,
+        total_seats=trip.total_seats,
+        tags=list(trip.tags or []),
+        cover_image_url=None,
+        gallery_images=None,
+        itinerary=list(trip.itinerary or []),
+    )
+    return create_trip(db, duplicate_payload)
+
+
+def get_trip_publish_blockers(db: Session, trip: Trip) -> List[str]:
+    from app.crud.trip_image import count_trip_images
+
+    blockers: List[str] = []
+    organizer = get_organizer_by_id(db, trip.organizer_id)
+    if organizer:
+        blockers.extend(organizer_profile_gaps(organizer))
+
+    if not trip.description or len(trip.description.strip()) < 120:
+        blockers.append("Add a clearer trip description (at least 120 characters)")
+    if not trip.meeting_point:
+        blockers.append("Add a meeting point")
+    if not trip.cancellation_policy:
+        blockers.append("Add a cancellation policy")
+    if not trip.itinerary or len(trip.itinerary) == 0:
+        blockers.append("Add an itinerary")
+    if count_trip_images(db, trip.id) == 0:
+        blockers.append("Upload at least one trip image")
+
+    return blockers
 
 
 def get_weekend_getaways(db: Session) -> List[Trip]:

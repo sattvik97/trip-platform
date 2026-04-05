@@ -32,6 +32,7 @@ export function BookingCard({
   const userLoggedIn = isAuthenticated && role === "user";
   const [booking, setBooking] = useState<UserBooking | null>(null);
   const [isLoadingBooking, setIsLoadingBooking] = useState(true);
+  const loginTarget = `/login?next=${encodeURIComponent(`/trip/${tripSlug}/book`)}`;
 
   useEffect(() => {
     if (!userLoggedIn) {
@@ -56,12 +57,14 @@ export function BookingCard({
 
   const handleBookingRequest = () => {
     if (!userLoggedIn) {
-      router.push("/login");
+      router.push(loginTarget);
       return;
     }
 
-    // If user already has a booking, navigate to confirmation page
-    if (booking) {
+    const normalized = booking ? normalizeBookingStatus(booking.status) : null;
+
+    // Active bookings route to the booking hub.
+    if (booking && normalized && ["REVIEW_PENDING", "PAYMENT_PENDING", "CONFIRMED"].includes(normalized)) {
       router.push(`/bookings/${booking.id}/confirmation`);
       return;
     }
@@ -83,20 +86,23 @@ export function BookingCard({
     }
     if (booking) {
       const normalized = normalizeBookingStatus(booking.status);
-      if (normalized === "PENDING") {
+      if (normalized === "REVIEW_PENDING") {
         return { text: "View Booking Request", disabled: false };
+      }
+      if (normalized === "PAYMENT_PENDING") {
+        return { text: "Complete Payment", disabled: false };
       }
       if (normalized === "CONFIRMED") {
         return { text: "View Confirmed Booking", disabled: false };
       }
       if (normalized === "CANCELLED" || normalized === "EXPIRED") {
-        return { text: "View Booking Details", disabled: false };
+        return { text: "Request Again", disabled: false };
       }
     }
     if (!userLoggedIn) {
-      return { text: "Login to Book", disabled: false };
+      return { text: "Sign In to Request", disabled: false };
     }
-    return { text: "Book Now", disabled: false };
+    return { text: "Request to Join", disabled: false };
   };
 
   const buttonState = getButtonState();
@@ -211,7 +217,7 @@ export function BookingCard({
           </button>
           {!userLoggedIn && (
             <p className="text-center text-sm text-gray-500 mt-3">
-              Sign in to book this trip
+              Sign in to send a request and continue later from your booking hub
             </p>
           )}
         </>

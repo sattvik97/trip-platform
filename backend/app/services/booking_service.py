@@ -50,7 +50,7 @@ class BookingService:
                 self.db.query(func.coalesce(func.sum(Booking.seats_booked), 0))
                 .filter(
                     Booking.trip_id == trip.id,
-                    Booking.status.in_([BookingStatus.PENDING, BookingStatus.CONFIRMED]),
+                    Booking.status.in_([BookingStatus.PAYMENT_PENDING, BookingStatus.CONFIRMED]),
                 )
                 .scalar()
             )
@@ -69,7 +69,7 @@ class BookingService:
                 source="user",
                 amount_snapshot=amount_snapshot,
                 currency="INR",
-                status=BookingStatus.PENDING,
+                status=BookingStatus.PAYMENT_PENDING,
                 expires_at=now + timedelta(minutes=self.HOLD_MINUTES),
             )
             self.db.add(booking)
@@ -92,7 +92,7 @@ class BookingService:
             updated_count = (
                 self.db.query(Booking)
                 .filter(
-                    Booking.status == BookingStatus.PENDING,
+                    Booking.status == BookingStatus.PAYMENT_PENDING,
                     Booking.expires_at < now,
                 )
                 .update({Booking.status: BookingStatus.EXPIRED}, synchronize_session=False)
@@ -106,7 +106,7 @@ class BookingService:
     def _expire_stale_for_trip(self, *, trip_id: str, now: datetime) -> None:
         self.db.query(Booking).filter(
             Booking.trip_id == trip_id,
-            Booking.status == BookingStatus.PENDING,
+            Booking.status == BookingStatus.PAYMENT_PENDING,
             Booking.expires_at < now,
         ).update(
             {Booking.status: BookingStatus.EXPIRED},

@@ -4,7 +4,7 @@ from typing import Optional
 from passlib.context import CryptContext
 
 from app.models.end_user import EndUser
-from app.schemas.user_auth import UserRegister
+from app.schemas.user_auth import UserProfileUpdate, UserRegister
 
 pwd_context = CryptContext(schemes=["bcrypt_sha256"], deprecated="auto")
 
@@ -45,6 +45,8 @@ def create_end_user(db: Session, user_data: UserRegister) -> EndUser:
     db_user = EndUser(
         email=user_data.email,
         password_hash=password_hash,
+        full_name=user_data.full_name.strip() if user_data.full_name else None,
+        phone=user_data.phone.strip() if user_data.phone else None,
     )
     
     db.add(db_user)
@@ -56,4 +58,24 @@ def create_end_user(db: Session, user_data: UserRegister) -> EndUser:
     except IntegrityError as e:
         db.rollback()
         raise ValueError("Failed to create user") from e
+
+
+def update_end_user_profile(
+    db: Session,
+    *,
+    user: EndUser,
+    profile_update: UserProfileUpdate,
+) -> EndUser:
+    if profile_update.full_name is not None:
+        user.full_name = profile_update.full_name.strip() or None
+    if profile_update.phone is not None:
+        user.phone = profile_update.phone.strip() or None
+
+    try:
+        db.commit()
+        db.refresh(user)
+        return user
+    except IntegrityError as e:
+        db.rollback()
+        raise ValueError("Failed to update user profile") from e
 

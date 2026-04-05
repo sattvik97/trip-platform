@@ -320,7 +320,7 @@ export function HeroSearch({
                     Search trips
                   </button>
                   <p className="text-sm leading-6 text-slate-500">
-                    Real seat counts. No payment taken here. You only send a request when you are ready.
+                    Real seat counts. No payment taken here. You only pay after the organizer approves your request.
                   </p>
                 </div>
               </div>
