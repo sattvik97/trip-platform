@@ -3,10 +3,11 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Header } from "@/src/components/layout/Header";
 import { Footer } from "@/src/components/layout/Footer";
+import { BackendUnavailableNotice } from "@/src/components/common/BackendUnavailableNotice";
 import { HomeTripCard } from "@/src/components/home/HomeTripCard";
 import { PaginationControls } from "@/src/components/trips/PaginationControls";
 import { getCategoryById, HOMEPAGE_CATEGORIES } from "@/src/config/categories";
-import { getTrips } from "@/src/lib/api/trips";
+import { getTrips, isTripsApiTemporarilyUnavailable } from "@/src/lib/api/trips";
 
 function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleDateString("en-US", {
@@ -43,6 +44,7 @@ async function CategoryTripsContent({
     page: validPage,
     limit: validLimit,
   });
+  const backendUnavailable = isTripsApiTemporarilyUnavailable();
 
   const hasMore = trips.length === validLimit;
   const totalTrips = hasMore
@@ -50,6 +52,15 @@ async function CategoryTripsContent({
     : (validPage - 1) * validLimit + trips.length;
 
   if (trips.length === 0) {
+    if (backendUnavailable) {
+      return (
+        <BackendUnavailableNotice
+          title={`We could not load ${category.title.toLowerCase()} trips`}
+          message="The page is up, but the backend trip service is not reachable right now. If you are developing locally, start the FastAPI server on port 8000 or point NEXT_PUBLIC_API_BASE_URL to the correct backend."
+        />
+      );
+    }
+
     return (
       <div className="text-center py-16">
         <div className="max-w-md mx-auto">

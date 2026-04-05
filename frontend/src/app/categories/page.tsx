@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { Header } from "@/src/components/layout/Header";
 import { Footer } from "@/src/components/layout/Footer";
+import { BackendUnavailableNotice } from "@/src/components/common/BackendUnavailableNotice";
 import { HomeTripCard } from "@/src/components/home/HomeTripCard";
 import { HOMEPAGE_CATEGORIES, getCategoryViewAllUrl } from "@/src/config/categories";
 import { fetchCategoryTrips } from "@/src/lib/categories";
+import { isTripsApiTemporarilyUnavailable } from "@/src/lib/api/trips";
+import type { Trip } from "@/src/types/trip";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +20,7 @@ function formatDate(dateString: string): string {
 
 interface CategoryCardProps {
   category: typeof HOMEPAGE_CATEGORIES[0];
-  trips: any[];
+  trips: Trip[];
 }
 
 function CategoryCard({ category, trips }: CategoryCardProps) {
@@ -63,9 +66,11 @@ function CategoryCard({ category, trips }: CategoryCardProps) {
 async function CategoriesContent() {
   // Fetch trips for all categories efficiently (deduplicates API calls)
   const categoryTripsMap = await fetchCategoryTrips(HOMEPAGE_CATEGORIES);
+  const backendUnavailable = isTripsApiTemporarilyUnavailable();
 
   return (
     <div className="space-y-8">
+      {backendUnavailable && <BackendUnavailableNotice />}
       {HOMEPAGE_CATEGORIES.map((category) => (
         <CategoryCard
           key={category.id}

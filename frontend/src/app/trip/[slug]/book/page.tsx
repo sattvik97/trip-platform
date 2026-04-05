@@ -8,6 +8,11 @@ import { Footer } from "@/src/components/layout/Footer";
 import { getTripBySlug, createBookingRequest } from "@/src/lib/api/trips";
 import type { Trip } from "@/src/types/trip";
 import { useAuth } from "@/src/contexts/AuthContext";
+import {
+  formatPriceInr,
+  formatSeatCopy,
+  formatTripDateRange,
+} from "@/src/lib/tripPresentation";
 
 interface TravelerDetail {
   name: string;
@@ -17,6 +22,8 @@ interface TravelerDetail {
 }
 
 function formatDateRange(startDate: string, endDate: string): string {
+  return formatTripDateRange(startDate, endDate, "short");
+
   const start = new Date(startDate);
   const end = new Date(endDate);
   const startFormatted = start.toLocaleDateString("en-US", {
@@ -54,9 +61,6 @@ export default function BookingPage() {
   const [contactPhone, setContactPhone] = useState("");
   const [contactEmail, setContactEmail] = useState("");
 
-  // Coupon (non-functional)
-  const [couponCode, setCouponCode] = useState("");
-
   useEffect(() => {
     if (!isAuthenticated) {
       router.push("/login");
@@ -70,9 +74,20 @@ export default function BookingPage() {
           notFound();
         }
         setTrip(tripData);
-        // Auto-fill contact email from user account
         if (user?.email) {
           setContactEmail(user.email);
+          setContactName((currentName) => {
+            if (currentName) {
+              return currentName;
+            }
+
+            const [rawName] = user.email.split("@");
+            return rawName
+              .split(/[._-]/)
+              .filter(Boolean)
+              .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+              .join(" ");
+          });
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load trip");
@@ -88,10 +103,11 @@ export default function BookingPage() {
 
   useEffect(() => {
     // Update travelers array when numTravelers changes
-    const newTravelers = Array.from({ length: numTravelers }, (_, i) => {
-      return travelers[i] || { name: "", age: 0, gender: "", profession: "" };
-    });
-    setTravelers(newTravelers.slice(0, numTravelers));
+    setTravelers((currentTravelers) =>
+      Array.from({ length: numTravelers }, (_, i) => {
+        return currentTravelers[i] || { name: "", age: 0, gender: "", profession: "" };
+      })
+    );
   }, [numTravelers]);
 
   const updateTraveler = (index: number, field: keyof TravelerDetail, value: string | number) => {
@@ -190,14 +206,29 @@ export default function BookingPage() {
   const totalPrice = trip.price * numTravelers;
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-[#f5efe6]">
       <Header />
       <main className="flex-grow">
-        <div className="container mx-auto px-4 py-8 max-w-5xl">
+        <div className="container mx-auto max-w-6xl px-4 py-8">
+          <div className="mb-6 rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-lg shadow-slate-950/5">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+              Booking request
+            </p>
+            <h1 className="font-display text-4xl font-semibold text-slate-950">
+              Request your place on {trip.title}
+            </h1>
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
+              You are not paying on this screen. You are sending the organizer a complete request so they can confirm the group fit and lock your spot.
+            </p>
+          </div>
+
           {/* Trip Summary */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">{trip.title}</h1>
-            <div className="space-y-2 text-sm text-gray-600">
+          <div className="mb-6 grid gap-4 rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-lg shadow-slate-950/5 md:grid-cols-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Trip</p>
+              <p className="mt-2 text-lg font-semibold text-slate-950">{trip.title}</p>
+            </div>
+            <div className="hidden space-y-2 text-sm text-gray-600">
               <p>
                 <span className="font-medium">Destination:</span> {trip.destination}
               </p>
@@ -211,6 +242,19 @@ export default function BookingPage() {
               <p>
                 <span className="font-medium">Seats available:</span> {trip.available_seats}
               </p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Destination</p>
+              <p className="mt-2 text-lg font-semibold text-slate-950">{trip.destination}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Dates</p>
+              <p className="mt-2 text-lg font-semibold text-slate-950">{dateRange}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Price and seats</p>
+              <p className="mt-2 text-lg font-semibold text-slate-950">{formatPriceInr(trip.price)}</p>
+              <p className="mt-1 text-sm text-slate-600">{formatSeatCopy(trip.available_seats)}</p>
             </div>
           </div>
 
@@ -416,27 +460,13 @@ export default function BookingPage() {
               </div>
             </div>
 
-            {/* Coupon UI (Non-functional) */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Coupon Code</h2>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Enter coupon code"
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value)}
-                  disabled
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
-                />
-                <button
-                  type="button"
-                  disabled
-                  className="px-6 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
-                >
-                  Apply
-                </button>
+            <div className="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-lg shadow-slate-950/5">
+              <h2 className="text-xl font-bold text-slate-950 mb-4">What happens after this?</h2>
+              <div className="space-y-3 text-sm leading-7 text-slate-600">
+                <p>1. Your request reaches the organizer with all traveler and contact details.</p>
+                <p>2. The organizer reviews group fit and confirms there is still enough approved capacity.</p>
+                <p>3. You get a clear confirmed or declined outcome inside your booking hub.</p>
               </div>
-              <p className="text-sm text-gray-500 mt-2">Coupon feature coming soon</p>
             </div>
 
             {/* Error Message */}
@@ -451,16 +481,16 @@ export default function BookingPage() {
               <button
                 type="button"
                 onClick={() => router.back()}
-                className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                className="rounded-full border border-slate-300 px-6 py-3 text-slate-700 transition-colors hover:border-slate-950 hover:text-slate-950"
               >
-                Cancel
+                Back
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                className="flex-1 rounded-full bg-slate-950 px-6 py-3 font-medium text-white transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {isSubmitting ? "Submitting..." : "Submit Booking Request"}
+                {isSubmitting ? "Sending request..." : "Send booking request"}
               </button>
             </div>
           </form>

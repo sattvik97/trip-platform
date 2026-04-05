@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { UserBooking } from "@/src/lib/api/user";
@@ -10,23 +10,23 @@ interface BookingStatusBannerProps {
 
 const MESSAGES: Record<string, { title: string; body: string; tone: string }> = {
   PENDING: {
-    title: "Booking Pending",
-    body: "Your reservation is active and waiting for payment completion/confirmation.",
+    title: "Your booking is still active",
+    body: "Track organizer confirmation and any payment steps from your booking hub.",
     tone: "amber",
   },
   CONFIRMED: {
-    title: "Booking Confirmed",
+    title: "Your spot is confirmed",
     body: "Payment is complete and your trip slot is secured.",
     tone: "emerald",
   },
   EXPIRED: {
-    title: "Booking Expired",
-    body: "The booking hold window ended before payment completion.",
+    title: "Booking expired",
+    body: "The hold window ended before payment was completed.",
     tone: "slate",
   },
   CANCELLED: {
-    title: "Booking Cancelled",
-    body: "This booking is cancelled. You can create a new booking for this trip.",
+    title: "Booking cancelled",
+    body: "This booking was cancelled or not approved. You can explore a new trip any time.",
     tone: "rose",
   },
 };

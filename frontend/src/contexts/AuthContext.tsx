@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode } from "react";
 import { getToken } from "@/src/lib/auth";
 import { getUserToken } from "@/src/lib/userAuth";
 
@@ -22,8 +22,12 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+interface DecodedToken {
+  sub?: string;
+}
+
 // Helper to decode JWT token (without verification, just for client-side display)
-function decodeJWT(token: string): any {
+function decodeJWT(token: string): DecodedToken | null {
   try {
     const base64Url = token.split(".")[1];
     const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
@@ -34,66 +38,59 @@ function decodeJWT(token: string): any {
         .join("")
     );
     return JSON.parse(jsonPayload);
-  } catch (e) {
+  } catch {
     return null;
   }
 }
 
-
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [authState, setAuthState] = useState<AuthState>({
-    isAuthenticated: false,
-    role: null,
-    user: null,
-  });
-
-  // Initialize auth state from tokens on mount
-  useEffect(() => {
-    // Check for organizer token
-    const organizerToken = getToken();
-    if (organizerToken) {
-      const decoded = decodeJWT(organizerToken);
-      const userId = decoded?.sub || "";
-      const email = typeof window !== "undefined" 
-        ? localStorage.getItem("organizer_email") || ""
-        : "";
-      
-      if (userId && email) {
-        setAuthState({
-          isAuthenticated: true,
-          role: "organizer",
-          user: { id: userId, email },
-        });
-        return;
-      }
-    }
-
-    // Check for user token
-    const userToken = getUserToken();
-    if (userToken) {
-      const decoded = decodeJWT(userToken);
-      const userId = decoded?.sub || "";
-      const email = typeof window !== "undefined"
-        ? localStorage.getItem("user_email") || ""
-        : "";
-      
-      if (userId && email) {
-        setAuthState({
-          isAuthenticated: true,
-          role: "user",
-          user: { id: userId, email },
-        });
-        return;
-      }
-    }
-
-    // No valid tokens
-    setAuthState({
+function getInitialAuthState(): AuthState {
+  if (typeof window === "undefined") {
+    return {
       isAuthenticated: false,
       role: null,
       user: null,
-    });
-  }, []);
+    };
+  }
+
+  const organizerToken = getToken();
+  if (organizerToken) {
+    const decoded = decodeJWT(organizerToken);
+    const userId = decoded?.sub || "";
+    const email = localStorage.getItem("organizer_email") || "";
+
+    if (userId && email) {
+      return {
+        isAuthenticated: true,
+        role: "organizer",
+        user: { id: userId, email },
+      };
+    }
+  }
+
+  const userToken = getUserToken();
+  if (userToken) {
+    const decoded = decodeJWT(userToken);
+    const userId = decoded?.sub || "";
+    const email = localStorage.getItem("user_email") || "";
+
+    if (userId && email) {
+      return {
+        isAuthenticated: true,
+        role: "user",
+        user: { id: userId, email },
+      };
+    }
+  }
+
+  return {
+    isAuthenticated: false,
+    role: null,
+    user: null,
+  };
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [authState, setAuthState] = useState<AuthState>(getInitialAuthState);
 
   const login = (token: string, email: string, role: "user" | "organizer") => {
     const decoded = decodeJWT(token);

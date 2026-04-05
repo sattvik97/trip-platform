@@ -3,10 +3,19 @@ import { Header } from "@/src/components/layout/Header";
 import { Footer } from "@/src/components/layout/Footer";
 import { TripHeroImage } from "@/src/components/trips/TripHeroImage";
 import { TripImageGallery } from "@/src/components/trips/TripImageGallery";
-import { BookingCard } from "@/src/components/trips/BookingCard";
+import { RequestCard } from "@/src/components/trips/RequestCard";
 import { TripBookingStatus } from "@/src/components/trips/TripBookingStatus";
 import { ExpandableText } from "@/src/components/trips/ExpandableText";
 import { getTripBySlug } from "@/src/lib/api/trips";
+import {
+  deriveTripFitNotes,
+  deriveTripHighlights,
+  formatPriceInr,
+  formatSeatCopy,
+  formatTagLabel,
+  formatTripDateRange,
+  formatTripDuration,
+} from "@/src/lib/tripPresentation";
 
 function calculateDuration(startDate: string, endDate: string): string {
   const start = new Date(startDate);
@@ -32,6 +41,9 @@ function formatDateRange(startDate: string, endDate: string): string {
   return `${startFormatted} – ${endFormatted}`;
 }
 
+void calculateDuration;
+void formatDateRange;
+
 export default async function TripDetailPage({
   params,
 }: {
@@ -44,18 +56,21 @@ export default async function TripDetailPage({
     notFound();
   }
 
-  const dateRange = formatDateRange(trip.start_date, trip.end_date);
-  const duration = calculateDuration(trip.start_date, trip.end_date);
-  const groupSize = `Max ${trip.total_seats} people`;
+  const dateRange = formatTripDateRange(trip.start_date, trip.end_date, "long");
+  const duration = formatTripDuration(trip.start_date, trip.end_date);
+  const groupSize = `Up to ${trip.total_seats} travelers`;
   const isArchived = trip.status === "ARCHIVED";
-
-  // For now, we don't have highlights from backend
-  const highlights: string[] = [];
-  const itinerary: Array<{ day: number; title: string; description: string }> =
-    trip.itinerary || [];
+  const highlights = deriveTripHighlights(trip);
+  const fitNotes = deriveTripFitNotes(trip);
+  const itinerary: Array<{ day: number; title: string; description: string }> = trip.itinerary || [];
+  const commitments = [
+    "Live seat counts stay tied to approved bookings.",
+    "Request-based booking helps the organizer curate the right group.",
+    "Bookings close automatically once the trip is too close to departure.",
+  ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-[#f5efe6]">
       <Header />
       <main className="flex-grow">
         {/* Hero Image Section */}
@@ -68,108 +83,153 @@ export default async function TripDetailPage({
           seatsAvailable={trip.available_seats}
         />
 
-        {/* Main Content */}
-        <div className="container mx-auto px-4 py-8 md:py-12 max-w-7xl">
+        <div className="border-y border-[color:var(--line)] bg-white/75">
+          <div className="container mx-auto grid max-w-7xl gap-4 px-4 py-6 md:grid-cols-4">
+            {[
+              { label: "Dates", value: dateRange },
+              { label: "Duration", value: duration },
+              { label: "Starting from", value: formatPriceInr(trip.price) },
+              { label: "Verified seats", value: formatSeatCopy(trip.available_seats) },
+            ].map((item) => (
+              <div key={item.label} className="rounded-[1.5rem] bg-[#f9f4ec] px-5 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  {item.label}
+                </p>
+                <p className="mt-2 text-lg font-semibold text-slate-950">{item.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="container mx-auto max-w-7xl px-4 py-8 md:py-12">
           {isArchived && (
-            <div className="mb-6 rounded-md bg-yellow-50 border border-yellow-200 px-4 py-3">
-              <p className="text-sm text-yellow-800">
-                This trip has been archived and is no longer accepting new bookings. You can still view the details below.
+            <div className="mb-6 rounded-[1.5rem] border border-amber-200 bg-amber-50 px-5 py-4">
+              <p className="text-sm leading-6 text-amber-900">
+                This trip has been archived and is no longer accepting new requests. You can still explore the itinerary below.
               </p>
             </div>
           )}
-          {/* Booking Status Banner */}
+
           <TripBookingStatus tripId={trip.id} />
-          
-          {/* Image Gallery */}
           <TripImageGallery tripId={trip.id} />
-          
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-16">
-            {/* Left Column - Main Content */}
-            <div className="lg:col-span-2 space-y-12">
-              {/* Overview Section */}
-              {trip.description && (
-                <section>
-                  <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-                    About this trip
-                  </h2>
-                  <div className="prose prose-lg max-w-none">
-                    <ExpandableText text={trip.description} maxLength={500} />
+
+          <div className="grid grid-cols-1 gap-12 lg:grid-cols-3 lg:gap-16">
+            <div className="space-y-12 lg:col-span-2">
+              <section className="grid gap-4 md:grid-cols-2">
+                {highlights.map((highlight) => (
+                  <div
+                    key={highlight}
+                    className="rounded-[1.75rem] border border-white/80 bg-white/80 p-6 shadow-lg shadow-slate-950/5"
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+                      Why this stands out
+                    </p>
+                    <p className="mt-3 text-lg font-semibold leading-8 text-slate-950">
+                      {highlight}
+                    </p>
                   </div>
-                </section>
-              )}
+                ))}
+              </section>
 
-              {/* Highlights Section */}
-              {highlights.length > 0 && (
-                <section>
-                  <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-                    Trip Highlights
-                  </h2>
-                  <ul className="space-y-4">
-                    {highlights.map((highlight, index) => (
-                      <li key={index} className="flex items-start gap-3">
-                        <svg
-                          className="w-6 h-6 text-blue-600 mt-0.5 flex-shrink-0"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        <span className="text-gray-700 text-lg">{highlight}</span>
-                      </li>
+              <section className="rounded-[2rem] border border-white/80 bg-white/80 p-7 shadow-lg shadow-slate-950/5">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+                  About this trip
+                </p>
+                <h2 className="font-display text-4xl font-semibold text-slate-950">
+                  A clearer picture before you request
+                </h2>
+                <div className="mt-5">
+                  <ExpandableText
+                    text={
+                      trip.description ||
+                      "The organizer has not added a long-form description yet, but the itinerary and live trip details below are already available."
+                    }
+                    maxLength={560}
+                  />
+                </div>
+              </section>
+
+              <section className="rounded-[2rem] border border-white/80 bg-white/80 p-7 shadow-lg shadow-slate-950/5">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+                  Good fit if
+                </p>
+                <h2 className="font-display text-4xl font-semibold text-slate-950">
+                  This trip matches how you like to travel
+                </h2>
+                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                  {fitNotes.map((note) => (
+                    <div key={note} className="rounded-[1.5rem] bg-[#f7f1e8] p-5 text-sm leading-7 text-slate-700">
+                      {note}
+                    </div>
+                  ))}
+                </div>
+                {trip.tags && trip.tags.length > 0 && (
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    {trip.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600"
+                      >
+                        {formatTagLabel(tag)}
+                      </span>
                     ))}
-                  </ul>
-                </section>
-              )}
+                  </div>
+                )}
+              </section>
 
-              {/* Itinerary Section */}
+              <section className="rounded-[2rem] border border-white/80 bg-white/80 p-7 shadow-lg shadow-slate-950/5">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+                  How booking works
+                </p>
+                <h2 className="font-display text-4xl font-semibold text-slate-950">
+                  Honest, request-based booking
+                </h2>
+                <div className="mt-6 space-y-4">
+                  {commitments.map((item, index) => (
+                    <div key={item} className="flex gap-4 rounded-[1.5rem] bg-[#f7f1e8] p-5">
+                      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white">
+                        {index + 1}
+                      </div>
+                      <p className="text-sm leading-7 text-slate-700">{item}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
               {itinerary.length > 0 && (
-                <section>
-                  <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-8">
+                <section className="rounded-[2rem] border border-white/80 bg-white/80 p-7 shadow-lg shadow-slate-950/5">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
                     Itinerary
+                  </p>
+                  <h2 className="font-display text-4xl font-semibold text-slate-950">
+                    The trip flow, day by day
                   </h2>
-                  <div className="space-y-6">
+                  <div className="mt-8 space-y-5">
                     {itinerary
                       .slice()
                       .sort((a, b) => a.day - b.day)
                       .map((item) => (
                         <div
                           key={item.day}
-                          className="bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow"
+                          className="rounded-[1.75rem] border border-slate-200 bg-white p-6"
                         >
-                          <div className="flex items-baseline gap-4 mb-3">
-                            <span className="text-blue-600 font-bold text-xl">
+                          <div className="mb-3 flex items-baseline gap-4">
+                            <span className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
                               Day {item.day}
                             </span>
-                            <h3 className="text-xl md:text-2xl font-semibold text-gray-900">
-                              {item.title}
-                            </h3>
+                            <h3 className="text-2xl font-semibold text-slate-950">{item.title}</h3>
                           </div>
-                          <p className="text-gray-700 leading-relaxed text-base md:text-lg">
-                            {item.description}
-                          </p>
+                          <p className="text-base leading-8 text-slate-700">{item.description}</p>
                         </div>
                       ))}
                   </div>
                 </section>
               )}
-
-              {!trip.description && highlights.length === 0 && itinerary.length === 0 && (
-                <section>
-                  <p className="text-gray-500 text-lg">More details coming soon.</p>
-                </section>
-              )}
             </div>
 
-            {/* Right Column - Sticky Booking Card */}
             <div className="lg:col-span-1">
-              <div className="lg:sticky lg:top-24">
-                <BookingCard
+              <div className="space-y-6 lg:sticky lg:top-24">
+                <RequestCard
                   tripId={trip.id}
                   tripSlug={trip.slug}
                   price={trip.price}
@@ -179,6 +239,17 @@ export default async function TripDetailPage({
                   seatsAvailable={trip.available_seats}
                   status={trip.status}
                 />
+
+                <div className="rounded-[2rem] border border-white/80 bg-white/80 p-6 shadow-lg shadow-slate-950/5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+                    What to expect
+                  </p>
+                  <div className="mt-4 space-y-3 text-sm leading-7 text-slate-700">
+                    <p>This is an organizer-owned trip, so the person reviewing your request is accountable for the experience.</p>
+                    <p>Availability is derived from confirmed bookings, which keeps the seat count more trustworthy than a hand-updated counter.</p>
+                    <p>If this trip is right for you, requesting early gives the organizer more time to review and confirm your place.</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

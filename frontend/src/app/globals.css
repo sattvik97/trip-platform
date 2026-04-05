@@ -1,8 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f5efe6;
+  --foreground: #14211c;
+  --surface: #fffaf3;
+  --surface-strong: #ffffff;
+  --line: rgba(20, 33, 28, 0.12);
+  --accent: #0d5f59;
+  --accent-strong: #0a3d39;
+  --warm: #8f5d3d;
 }
 
 @theme inline {
@@ -12,17 +18,16 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Aptos", "Segoe UI", "Trebuchet MS", sans-serif;
+  min-height: 100vh;
+  background-image:
+    radial-gradient(circle at top, rgba(143, 93, 61, 0.12), transparent 32%),
+    linear-gradient(180deg, #fbf8f3 0%, #f3ede4 100%);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* Hide scrollbar for horizontal scrolling */
@@ -33,4 +38,23 @@ body {
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+::selection {
+  background: rgba(13, 95, 89, 0.18);
+  color: #0a1a16;
+}
+
+a {
+  text-decoration: none;
+}
+
+.font-display {
+  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  letter-spacing: -0.04em;
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(18px);
 }

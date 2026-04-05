@@ -1,8 +1,10 @@
-import { notFound } from "next/navigation";
 import { Header } from "@/src/components/layout/Header";
 import { Footer } from "@/src/components/layout/Footer";
+import { BackendUnavailableNotice } from "@/src/components/common/BackendUnavailableNotice";
 import { HomeTripCard } from "@/src/components/home/HomeTripCard";
-import { getWeekendGetaways } from "@/src/lib/api/trips";
+import { getWeekendGetaways, isTripsApiTemporarilyUnavailable } from "@/src/lib/api/trips";
+
+export const dynamic = "force-dynamic";
 
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
@@ -15,6 +17,7 @@ function formatDate(dateString: string): string {
 
 export default async function WeekendGetawaysPage() {
   const trips = await getWeekendGetaways();
+  const backendUnavailable = isTripsApiTemporarilyUnavailable();
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -35,6 +38,12 @@ export default async function WeekendGetawaysPage() {
 
         <div className="container mx-auto px-4 py-8 md:py-12 max-w-7xl">
           {trips.length === 0 ? (
+            backendUnavailable ? (
+              <BackendUnavailableNotice
+                title="We could not load weekend getaways"
+                message="The backend trip service is not reachable right now. If you are running locally, start the FastAPI server on port 8000 or set NEXT_PUBLIC_API_BASE_URL to the active backend."
+              />
+            ) : (
             <div className="text-center py-16">
               <div className="max-w-md mx-auto">
                 <svg
@@ -56,6 +65,7 @@ export default async function WeekendGetawaysPage() {
                 <p className="text-gray-500 mb-6">
                   Check back next week for new weekend getaway trips!
                 </p>
+                {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
                 <a
                   href="/trips"
                   className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium transition-colors"
@@ -64,6 +74,7 @@ export default async function WeekendGetawaysPage() {
                 </a>
               </div>
             </div>
+            )
           ) : (
             <>
               <div className="mb-6">

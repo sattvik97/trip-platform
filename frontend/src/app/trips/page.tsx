@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import type { Trip } from "@/src/types/trip";
 import { getTrips } from "@/src/lib/api/trips";
 import { HomeTripCard } from "@/src/components/home/HomeTripCard";
 import { TagFilters } from "@/src/components/trips/TagFilters";
@@ -129,12 +128,12 @@ export default async function TripsPage({ searchParams }: TripsPageProps) {
           <p className="text-gray-600 mb-6">
             Browse trips by category for a better experience.
           </p>
-          <a
+          <Link
             href="/discover"
-            className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="inline-block rounded-lg bg-blue-600 px-6 py-3 text-white transition-colors hover:bg-blue-700"
           >
             Browse Categories
-          </a>
+          </Link>
         </div>
       </main>
     );

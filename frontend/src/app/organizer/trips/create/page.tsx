@@ -410,7 +410,7 @@ export default function CreateTripPage() {
                     Trip Images
                   </p>
                   <p className="text-sm text-blue-700 mt-1">
-                    After creating your trip, you'll be redirected to the edit page where you can upload up to 8 images. The first image will be used as the cover image.
+                    After creating your trip, you&apos;ll be redirected to the edit page where you can upload up to 8 images. The first image will be used as the cover image.
                   </p>
                 </div>
               </div>
