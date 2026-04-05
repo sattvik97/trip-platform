@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { Suspense, useState, FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { registerUser } from "@/src/lib/api/user";
 import { AuthHeader } from "@/src/components/auth/AuthHeader";
 import { AuthBanner } from "@/src/components/auth/AuthBanner";
 
-export default function RegisterPage() {
+export const dynamic = "force-dynamic";
+
+function RegisterInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = (() => {
@@ -192,6 +194,14 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterInner />
+    </Suspense>
   );
 }
 

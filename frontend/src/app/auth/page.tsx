@@ -1,11 +1,14 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Header } from "@/src/components/layout/Header";
 import { Footer } from "@/src/components/layout/Footer";
 
-export default function AuthIntentPage() {
+export const dynamic = "force-dynamic";
+
+function AuthIntentPageInner() {
   const searchParams = useSearchParams();
   const nextPath = (() => {
     const candidate = searchParams.get("next") || "/";
@@ -121,6 +124,14 @@ export default function AuthIntentPage() {
       </main>
       <Footer />
     </div>
+  );
+}
+
+export default function AuthIntentPage() {
+  return (
+    <Suspense fallback={null}>
+      <AuthIntentPageInner />
+    </Suspense>
   );
 }
 

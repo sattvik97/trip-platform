@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { OrganizerWorkspaceShell } from "@/src/components/organizer/OrganizerWorkspaceShell";
 import {
@@ -25,7 +25,9 @@ const STATUS_OPTIONS = [
   { value: "EXPIRED", label: "Expired" },
 ];
 
-export default function OrganizerBookingsPage() {
+export const dynamic = "force-dynamic";
+
+function OrganizerBookingsPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialTripId = searchParams.get("tripId") || "";
@@ -451,5 +453,13 @@ export default function OrganizerBookingsPage() {
         </aside>
       </div>
     </OrganizerWorkspaceShell>
+  );
+}
+
+export default function OrganizerBookingsPage() {
+  return (
+    <Suspense fallback={null}>
+      <OrganizerBookingsPageInner />
+    </Suspense>
   );
 }
